@@ -4,12 +4,13 @@ import re
 from dataclasses import dataclass
 
 from pyscrai.contracts.models import Entity, Polity, ProvenanceRecord, Rule, WorldMatrixDraft, utc_now
-from pyscrai.domain.enums import OperatorMode, ProvenanceKind
+from pyscrai.domain.enums import OperatorMode, ProvenanceKind, SessionPhase
 
 
 @dataclass(slots=True)
 class SetupMappingResult:
     extracted_facts: list[str]
+    captured_updates: list[str]
 
 
 class SetupInterviewMapper:
@@ -54,21 +55,25 @@ class SetupInterviewMapper:
         ),
     )
 
-    def apply_operator_message(self, draft: WorldMatrixDraft, content: str) -> SetupMappingResult:
+    def apply_operator_message(
+        self,
+        draft: WorldMatrixDraft,
+        content: str,
+        phase: SessionPhase,
+    ) -> SetupMappingResult:
         trimmed = content.strip()
-        self._apply_environment(draft, trimmed)
+        before = self._snapshot(draft)
+        if phase == SessionPhase.INTENT_FRAMING:
+            self._apply_environment(draft, trimmed)
         for clause in self._split_clauses(trimmed):
-            self._apply_time_scope(draft, clause)
-            self._apply_spatial_scope(draft, clause)
-            self._apply_operator_mode(draft, clause)
-            self._apply_entities(draft, clause)
-            self._apply_polities(draft, clause)
-            self._apply_rules(draft, clause)
-            self._apply_knowledge_layers(draft, clause)
+            self._apply_phase_aware_clause(draft, clause, phase)
         self._append_provenance(draft, trimmed)
         draft.metadata.updated_at = utc_now()
 
-        return SetupMappingResult(extracted_facts=self.extract_facts(draft))
+        return SetupMappingResult(
+            extracted_facts=self.extract_facts(draft),
+            captured_updates=self._captured_updates(before, draft),
+        )
 
     def extract_facts(self, draft: WorldMatrixDraft) -> list[str]:
         facts: list[str] = []
@@ -95,6 +100,26 @@ class SetupInterviewMapper:
             draft.environment.description = content
             return
         draft.environment.macro_conditions.append(content)
+
+    def _apply_phase_aware_clause(self, draft: WorldMatrixDraft, clause: str, phase: SessionPhase) -> None:
+        self._apply_time_scope(draft, clause)
+        self._apply_spatial_scope(draft, clause)
+
+        if phase in {
+            SessionPhase.WORLD_POPULATION,
+            SessionPhase.RULES_AND_KNOWLEDGE_BOUNDARIES,
+            SessionPhase.VALIDATION_PASS,
+        }:
+            self._apply_entities(draft, clause)
+            self._apply_polities(draft, clause)
+
+        if phase in {
+            SessionPhase.RULES_AND_KNOWLEDGE_BOUNDARIES,
+            SessionPhase.VALIDATION_PASS,
+        }:
+            self._apply_operator_mode(draft, clause)
+            self._apply_rules(draft, clause)
+            self._apply_knowledge_layers(draft, clause)
 
     def _apply_time_scope(self, draft: WorldMatrixDraft, content: str) -> None:
         if draft.domain.time_scope != "unspecified":
@@ -212,3 +237,47 @@ class SetupInterviewMapper:
                 confidence=1.0,
             )
         )
+
+    @staticmethod
+    def _snapshot(draft: WorldMatrixDraft) -> dict[str, object]:
+        return {
+            "environment": draft.environment.description,
+            "time_scope": draft.domain.time_scope,
+            "spatial_scope": draft.domain.spatial_scope,
+            "operator_mode": draft.operator_role.mode,
+            "entities": [entity.name for entity in draft.entities],
+            "polities": [polity.name for polity in draft.polities],
+            "rule_count": len(draft.rules),
+            "public_knowledge_count": len(draft.knowledge_layers.public_knowledge),
+            "contested_claim_count": len(draft.knowledge_layers.contested_claims),
+        }
+
+    @staticmethod
+    def _captured_updates(before: dict[str, object], draft: WorldMatrixDraft) -> list[str]:
+        updates: list[str] = []
+        if before["environment"] != draft.environment.description and draft.environment.description:
+            updates.append("environment framing")
+        if before["time_scope"] != draft.domain.time_scope and draft.domain.time_scope != "unspecified":
+            updates.append(f"time scope {draft.domain.time_scope}")
+        if before["spatial_scope"] != draft.domain.spatial_scope and draft.domain.spatial_scope != "unspecified":
+            updates.append(f"spatial scope {draft.domain.spatial_scope}")
+        if before["operator_mode"] != draft.operator_role.mode:
+            updates.append(f"operator mode {draft.operator_role.mode}")
+
+        before_entities = set(before["entities"])
+        new_entities = [entity.name for entity in draft.entities if entity.name not in before_entities]
+        if new_entities:
+            updates.append(f"entities {', '.join(new_entities)}")
+
+        before_polities = set(before["polities"])
+        new_polities = [polity.name for polity in draft.polities if polity.name not in before_polities]
+        if new_polities:
+            updates.append(f"polities {', '.join(new_polities)}")
+
+        if before["rule_count"] != len(draft.rules):
+            updates.append(f"{len(draft.rules) - int(before['rule_count'])} rule updates")
+        if before["public_knowledge_count"] != len(draft.knowledge_layers.public_knowledge):
+            updates.append("public knowledge")
+        if before["contested_claim_count"] != len(draft.knowledge_layers.contested_claims):
+            updates.append("contested claims")
+        return updates

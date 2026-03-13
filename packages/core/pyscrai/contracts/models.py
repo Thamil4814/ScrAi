@@ -32,6 +32,13 @@ class ProjectCreateRequest(ModelBase):
     operator: str | None = None
 
 
+class ProjectBootstrapRequest(ModelBase):
+    prompt: str = Field(min_length=1)
+    operator: str | None = None
+    name: str | None = None
+    domain_type_hint: DomainType | None = None
+
+
 class SetupSessionCreateRequest(ModelBase):
     phase: SessionPhase = SessionPhase.INTENT_FRAMING
 
@@ -161,6 +168,28 @@ class SimulationProfile(ModelBase):
     evaluation_mode: str = "qualitative"
 
 
+class WorldBranchCreateRequest(ModelBase):
+    title: str = Field(min_length=1)
+    parent_branch_id: str | None = None
+    modifications: list[str] = Field(default_factory=list)
+    initial_conditions: list[str] = Field(default_factory=list)
+    branch_notes: str = ""
+
+
+class ScenarioCreateRequest(ModelBase):
+    runtime_profile: SimulationProfile = Field(default_factory=SimulationProfile)
+    actor_bindings: dict[str, str] = Field(default_factory=dict)
+    initial_state: dict[str, str] = Field(default_factory=dict)
+    stop_conditions: list[str] = Field(default_factory=list)
+    evaluator_config: dict[str, str] = Field(default_factory=dict)
+
+
+class SimulationRunRequest(ModelBase):
+    turn_limit: int | None = Field(default=None, ge=1, le=50)
+    objective: str = "stability_probe"
+    inject_events: list[str] = Field(default_factory=list)
+
+
 class WorldMatrixPayload(ModelBase):
     metadata: MetadataProfile
     domain: DomainProfile
@@ -217,6 +246,12 @@ class WorldMatrixDraft(WorldMatrixPayload):
     version: int = 1
     unresolved_items: list[str] = Field(default_factory=list)
     validation_state: ValidationState = ValidationState.DRAFT
+
+
+class ProjectBootstrapResponse(ModelBase):
+    project: Project
+    setup_session: SetupSession
+    draft: WorldMatrixDraft
 
 
 class WorldMatrix(ModelBase):

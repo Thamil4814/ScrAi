@@ -1,9 +1,0 @@
-{
-  "id": "eb1c2f63-0446-45d3-bf98-887d52d99554",
-  "name": "Regional crisis sim",
-  "description": "A constrained geopolitical crisis setup.",
-  "domain_type": "geopolitical",
-  "created_at": "2026-03-13T10:33:36.111999Z",
-  "updated_at": "2026-03-13T10:33:36.112004Z",
-  "status": "compiled"
-}

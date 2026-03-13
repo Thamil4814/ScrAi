@@ -5,11 +5,19 @@ from fastapi import FastAPI, HTTPException
 from pyscrai.application.services import ProjectService
 from pyscrai.contracts.models import (
     Project,
+    ProjectBootstrapRequest,
+    ProjectBootstrapResponse,
     ProjectCreateRequest,
+    Scenario,
+    ScenarioCreateRequest,
     SetupMessageRequest,
     SetupSession,
     SetupSessionCreateRequest,
+    SimulationRun,
+    SimulationRunRequest,
     ValidationSummary,
+    WorldBranch,
+    WorldBranchCreateRequest,
     WorldMatrix,
     WorldMatrixDraft,
 )
@@ -27,6 +35,11 @@ def health() -> dict[str, str]:
 @app.post("/projects", response_model=Project)
 def create_project(request: ProjectCreateRequest) -> Project:
     return service.create_project(request)
+
+
+@app.post("/projects/bootstrap", response_model=ProjectBootstrapResponse)
+def bootstrap_project(request: ProjectBootstrapRequest) -> ProjectBootstrapResponse:
+    return service.bootstrap_project(request)
 
 
 @app.post("/projects/{project_id}/setup-sessions", response_model=SetupSession)
@@ -77,6 +90,54 @@ def compile_worldmatrix_draft(project_id: str) -> WorldMatrix:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@app.get("/worldmatrices/{worldmatrix_id}", response_model=WorldMatrix)
+def get_worldmatrix(worldmatrix_id: str) -> WorldMatrix:
+    try:
+        return service.get_worldmatrix(worldmatrix_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/worldmatrices/{worldmatrix_id}/branches", response_model=WorldBranch)
+def create_worldbranch(worldmatrix_id: str, request: WorldBranchCreateRequest) -> WorldBranch:
+    try:
+        return service.create_worldbranch(worldmatrix_id, request)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/branches/{branch_id}/scenarios", response_model=Scenario)
+def create_scenario(branch_id: str, request: ScenarioCreateRequest) -> Scenario:
+    try:
+        return service.create_scenario(branch_id, request)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/scenarios/{scenario_id}", response_model=Scenario)
+def get_scenario(scenario_id: str) -> Scenario:
+    try:
+        return service.get_scenario(scenario_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/scenarios/{scenario_id}/runs", response_model=SimulationRun)
+def run_scenario(scenario_id: str, request: SimulationRunRequest | None = None) -> SimulationRun:
+    try:
+        return service.run_scenario(scenario_id, request)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/runs/{run_id}", response_model=SimulationRun)
+def get_run(run_id: str) -> SimulationRun:
+    try:
+        return service.get_simulation_run(run_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 def run() -> None:

@@ -5,7 +5,15 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from pyscrai.contracts.models import Project, SetupSession, WorldMatrix, WorldMatrixDraft
+from pyscrai.contracts.models import (
+    Project,
+    Scenario,
+    SetupSession,
+    SimulationRun,
+    WorldBranch,
+    WorldMatrix,
+    WorldMatrixDraft,
+)
 
 
 class NotFoundError(FileNotFoundError):
@@ -47,6 +55,39 @@ class ArtifactRepository:
     def save_worldmatrix(self, worldmatrix: WorldMatrix) -> None:
         self._write_model(self.worldmatrix_path(worldmatrix.project_id, worldmatrix.id), worldmatrix)
 
+    def load_worldmatrix(self, worldmatrix_id: str) -> WorldMatrix:
+        worldmatrix_file = next(self.root.glob(f"*/worldmatrices/{worldmatrix_id}.json"), None)
+        if worldmatrix_file is None:
+            raise NotFoundError(f"WorldMatrix {worldmatrix_id} was not found.")
+        return self._read_model(worldmatrix_file, WorldMatrix)
+
+    def save_worldbranch(self, project_id: str, worldbranch: WorldBranch) -> None:
+        self._write_model(self.worldbranch_path(project_id, worldbranch.id), worldbranch)
+
+    def load_worldbranch(self, branch_id: str) -> WorldBranch:
+        branch_file = next(self.root.glob(f"*/worldbranches/{branch_id}.json"), None)
+        if branch_file is None:
+            raise NotFoundError(f"WorldBranch {branch_id} was not found.")
+        return self._read_model(branch_file, WorldBranch)
+
+    def save_scenario(self, project_id: str, scenario: Scenario) -> None:
+        self._write_model(self.scenario_path(project_id, scenario.id), scenario)
+
+    def load_scenario(self, scenario_id: str) -> Scenario:
+        scenario_file = next(self.root.glob(f"*/scenarios/{scenario_id}.json"), None)
+        if scenario_file is None:
+            raise NotFoundError(f"Scenario {scenario_id} was not found.")
+        return self._read_model(scenario_file, Scenario)
+
+    def save_simulation_run(self, project_id: str, run: SimulationRun) -> None:
+        self._write_model(self.simulation_run_path(project_id, run.id), run)
+
+    def load_simulation_run(self, run_id: str) -> SimulationRun:
+        run_file = next(self.root.glob(f"*/simulation-runs/{run_id}.json"), None)
+        if run_file is None:
+            raise NotFoundError(f"SimulationRun {run_id} was not found.")
+        return self._read_model(run_file, SimulationRun)
+
     def project_path(self, project_id: str) -> Path:
         return self.project_dir(project_id) / "project.json"
 
@@ -58,6 +99,15 @@ class ArtifactRepository:
 
     def worldmatrix_path(self, project_id: str, worldmatrix_id: str) -> Path:
         return self.project_dir(project_id) / "worldmatrices" / f"{worldmatrix_id}.json"
+
+    def worldbranch_path(self, project_id: str, branch_id: str) -> Path:
+        return self.project_dir(project_id) / "worldbranches" / f"{branch_id}.json"
+
+    def scenario_path(self, project_id: str, scenario_id: str) -> Path:
+        return self.project_dir(project_id) / "scenarios" / f"{scenario_id}.json"
+
+    def simulation_run_path(self, project_id: str, run_id: str) -> Path:
+        return self.project_dir(project_id) / "simulation-runs" / f"{run_id}.json"
 
     def project_dir(self, project_id: str) -> Path:
         return self.root / project_id
