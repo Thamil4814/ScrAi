@@ -1,0 +1,262 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Literal
+from uuid import uuid4
+
+from pydantic import BaseModel, Field
+
+from pyscrai.domain.enums import (
+    DomainType,
+    OperatorMode,
+    ProjectStatus,
+    ProvenanceKind,
+    SessionPhase,
+    SessionStatus,
+    ValidationState,
+)
+
+
+def utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+class ModelBase(BaseModel):
+    model_config = {"use_enum_values": True}
+
+
+class ProjectCreateRequest(ModelBase):
+    name: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    domain_type: DomainType
+    operator: str | None = None
+
+
+class SetupSessionCreateRequest(ModelBase):
+    phase: SessionPhase = SessionPhase.INTENT_FRAMING
+
+
+class SetupMessageRequest(ModelBase):
+    role: Literal["operator", "architect"] = "operator"
+    content: str = Field(min_length=1)
+
+
+class ValidationIssue(ModelBase):
+    severity: Literal["warning", "blocker"]
+    code: str
+    message: str
+
+
+class ValidationSummary(ModelBase):
+    required_section_completeness: dict[str, bool] = Field(default_factory=dict)
+    unresolved_blockers: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    compile_readiness: bool = False
+    issues: list[ValidationIssue] = Field(default_factory=list)
+
+
+class ProvenanceRecord(ModelBase):
+    kind: ProvenanceKind
+    source: str
+    detail: str
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    recorded_at: datetime = Field(default_factory=utc_now)
+
+
+class CompileMetadata(ModelBase):
+    compatibility_version: str = "worldmatrix.v1"
+    compiled_at: datetime | None = None
+
+
+class MetadataProfile(ModelBase):
+    title: str
+    description: str
+    author_operator: str | None = None
+    version: int = 1
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+
+class DomainProfile(ModelBase):
+    domain_type: DomainType
+    ontology_pack: str = "baseline"
+    time_scope: str = "unspecified"
+    spatial_scope: str = "unspecified"
+    realism_mode: str = "mixed"
+
+
+class EnvironmentProfile(ModelBase):
+    description: str = ""
+    locations: list[str] = Field(default_factory=list)
+    environmental_attributes: list[str] = Field(default_factory=list)
+    macro_conditions: list[str] = Field(default_factory=list)
+
+
+class Entity(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    name: str
+    type: str
+    description: str = ""
+    goals: list[str] = Field(default_factory=list)
+    capabilities: list[str] = Field(default_factory=list)
+    affiliations: list[str] = Field(default_factory=list)
+    visible_knowledge_refs: list[str] = Field(default_factory=list)
+    hidden_state: dict[str, str] = Field(default_factory=dict)
+
+
+class Polity(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    name: str
+    category: str
+    leadership: list[str] = Field(default_factory=list)
+    resources: list[str] = Field(default_factory=list)
+    objectives: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+
+
+class Relationship(ModelBase):
+    source: str
+    target: str
+    type: str
+    strength: float = 0.5
+    alignment: str = "neutral"
+    provenance: list[ProvenanceRecord] = Field(default_factory=list)
+
+
+class Resource(ModelBase):
+    owner: str
+    resource_type: str
+    quantity_or_value: str
+    access_constraints: list[str] = Field(default_factory=list)
+
+
+class Rule(ModelBase):
+    category: str
+    description: str
+    forbidden_actions: list[str] = Field(default_factory=list)
+    trigger_rules: list[str] = Field(default_factory=list)
+
+
+class KnowledgeLayers(ModelBase):
+    world_truth: list[str] = Field(default_factory=list)
+    public_knowledge: list[str] = Field(default_factory=list)
+    polity_private: dict[str, list[str]] = Field(default_factory=dict)
+    entity_private: dict[str, list[str]] = Field(default_factory=dict)
+    contested_claims: list[str] = Field(default_factory=list)
+    operator_visibility: list[str] = Field(default_factory=lambda: ["world_truth", "public_knowledge"])
+
+
+class OperatorRole(ModelBase):
+    mode: OperatorMode = OperatorMode.OBSERVER
+    bindings: list[str] = Field(default_factory=list)
+    permissions: list[str] = Field(default_factory=lambda: ["view_worldmatrix", "compile_worldmatrix"])
+    visibility_scope: list[str] = Field(default_factory=lambda: ["world_truth", "public_knowledge"])
+
+
+class SimulationProfile(ModelBase):
+    simulation_style: str = "turn_based"
+    turn_cadence: str = "discrete"
+    branching_policy: str = "manual"
+    abstraction_level: str = "mvp"
+    evaluation_mode: str = "qualitative"
+
+
+class WorldMatrixPayload(ModelBase):
+    metadata: MetadataProfile
+    domain: DomainProfile
+    environment: EnvironmentProfile = Field(default_factory=EnvironmentProfile)
+    entities: list[Entity] = Field(default_factory=list)
+    polities: list[Polity] = Field(default_factory=list)
+    relationships: list[Relationship] = Field(default_factory=list)
+    resources: list[Resource] = Field(default_factory=list)
+    rules: list[Rule] = Field(default_factory=list)
+    knowledge_layers: KnowledgeLayers = Field(default_factory=KnowledgeLayers)
+    operator_role: OperatorRole = Field(default_factory=OperatorRole)
+    simulation_profile: SimulationProfile = Field(default_factory=SimulationProfile)
+    provenance: list[ProvenanceRecord] = Field(default_factory=list)
+    validation: ValidationSummary = Field(default_factory=ValidationSummary)
+
+
+class Project(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    name: str
+    description: str
+    domain_type: DomainType
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+    status: ProjectStatus = ProjectStatus.DRAFT
+
+
+class PendingQuestion(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    prompt: str
+    rationale: str
+
+
+class SetupMessage(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    role: Literal["operator", "architect"]
+    content: str
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class SetupSession(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    project_id: str
+    phase: SessionPhase = SessionPhase.INTENT_FRAMING
+    transcript: list[SetupMessage] = Field(default_factory=list)
+    extracted_facts: list[str] = Field(default_factory=list)
+    pending_questions: list[PendingQuestion] = Field(default_factory=list)
+    draft_worldmatrix_id: str
+    status: SessionStatus = SessionStatus.ACTIVE
+
+
+class WorldMatrixDraft(WorldMatrixPayload):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    project_id: str
+    version: int = 1
+    unresolved_items: list[str] = Field(default_factory=list)
+    validation_state: ValidationState = ValidationState.DRAFT
+
+
+class WorldMatrix(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    project_id: str
+    version: int = 1
+    draft_source_id: str
+    compiled_at: datetime = Field(default_factory=utc_now)
+    compatibility_version: str = "worldmatrix.v1"
+    payload: WorldMatrixPayload
+    validation_report: ValidationSummary
+    provenance_manifest: list[ProvenanceRecord] = Field(default_factory=list)
+
+
+class WorldBranch(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    worldmatrix_id: str
+    parent_branch_id: str | None = None
+    title: str
+    modifications: list[str] = Field(default_factory=list)
+    initial_conditions: list[str] = Field(default_factory=list)
+    branch_notes: str = ""
+
+
+class Scenario(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    worldbranch_id: str
+    runtime_profile: SimulationProfile = Field(default_factory=SimulationProfile)
+    actor_bindings: dict[str, str] = Field(default_factory=dict)
+    initial_state: dict[str, str] = Field(default_factory=dict)
+    stop_conditions: list[str] = Field(default_factory=list)
+    evaluator_config: dict[str, str] = Field(default_factory=dict)
+
+
+class SimulationRun(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    scenario_id: str
+    started_at: datetime = Field(default_factory=utc_now)
+    completed_at: datetime | None = None
+    runtime_trace: list[dict[str, str]] = Field(default_factory=list)
+    event_log: list[dict[str, str]] = Field(default_factory=list)
+    state_snapshots: list[dict[str, str]] = Field(default_factory=list)
+    result_summary: dict[str, str] = Field(default_factory=dict)

@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyscrai"
+version = "0.1.0"
+description = "WorldMatrix-first MVP scaffold for PyScrAI"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "pydantic>=2.10,<3.0",
+  "typer>=0.12,<1.0",
+  "uvicorn>=0.30,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1.0",
+  "pytest>=8.3,<9.0",
+]
+
+[project.scripts]
+pyscrai = "pyscrai.interfaces.cli:main"
+pyscrai-api = "pyscrai.interfaces.api:run"
+
+[tool.setuptools.package-dir]
+"" = "packages/core"
+
+[tool.setuptools.packages.find]
+where = ["packages/core"]
+include = ["pyscrai*"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "packages/core",
+]
+testpaths = ["tests"]
