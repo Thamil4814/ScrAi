@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pyscrai.contracts.models import utc_now
+from pyscrai.application.setup_mapper import SetupInterviewMapper
 from pyscrai.contracts.models import (
     PendingQuestion,
     Project,
@@ -16,13 +16,14 @@ from pyscrai.contracts.models import (
     WorldMatrixDraft,
     WorldMatrixPayload,
 )
-from pyscrai.domain.enums import ProjectStatus, ProvenanceKind, ValidationState
+from pyscrai.domain.enums import ProjectStatus, ProvenanceKind, SessionPhase, ValidationState
 from pyscrai.services.repository import ArtifactRepository
 
 
 class ProjectService:
     def __init__(self, repository: ArtifactRepository | None = None) -> None:
         self.repository = repository or ArtifactRepository()
+        self.mapper = SetupInterviewMapper()
 
     def create_project(self, request: ProjectCreateRequest) -> Project:
         project = Project(
@@ -59,10 +60,10 @@ class ProjectService:
 
     def create_setup_session(self, project_id: str, request: SetupSessionCreateRequest | None = None) -> SetupSession:
         draft = self.repository.load_draft(project_id)
-        session_request = request or SetupSessionCreateRequest()
+        session_phase = request.phase if request is not None else self.phase_for(draft)
         session = SetupSession(
             project_id=project_id,
-            phase=session_request.phase,
+            phase=session_phase,
             draft_worldmatrix_id=draft.id,
             pending_questions=self.build_pending_questions(draft),
         )
@@ -76,10 +77,12 @@ class ProjectService:
         session.transcript.append(message)
 
         if request.role == "operator":
-            self.apply_operator_message(draft, request.content)
+            mapping_result = self.mapper.apply_operator_message(draft, request.content)
             draft.validation = self.validate_draft_model(draft)
+            draft.unresolved_items = self.compute_unresolved_items(draft)
             draft.validation_state = self.validation_state_for(draft.validation)
-            session.extracted_facts = self.extract_facts(draft)
+            session.extracted_facts = mapping_result.extracted_facts
+            session.phase = self.phase_for(draft)
             session.pending_questions = self.build_pending_questions(draft)
             self.repository.save_draft(draft)
 
@@ -92,6 +95,7 @@ class ProjectService:
     def get_worldmatrix_draft(self, project_id: str) -> WorldMatrixDraft:
         draft = self.repository.load_draft(project_id)
         draft.validation = self.validate_draft_model(draft)
+        draft.unresolved_items = self.compute_unresolved_items(draft)
         draft.validation_state = self.validation_state_for(draft.validation)
         self.repository.save_draft(draft)
         return draft
@@ -100,6 +104,7 @@ class ProjectService:
         draft = self.repository.load_draft(project_id)
         validation = self.validate_draft_model(draft)
         draft.validation = validation
+        draft.unresolved_items = self.compute_unresolved_items(draft)
         draft.validation_state = self.validation_state_for(validation)
         self.repository.save_draft(draft)
         return validation
@@ -133,39 +138,15 @@ class ProjectService:
             provenance_manifest=draft.provenance,
         )
         draft.validation = validation
+        draft.unresolved_items = self.compute_unresolved_items(draft)
         draft.validation_state = ValidationState.COMPILED
         self.repository.save_draft(draft)
         self.repository.save_worldmatrix(worldmatrix)
         self.repository.update_project_status(project_id, ProjectStatus.COMPILED)
         return worldmatrix
 
-    def apply_operator_message(self, draft: WorldMatrixDraft, content: str) -> None:
-        trimmed = content.strip()
-        if not draft.environment.description:
-            draft.environment.description = trimmed
-        else:
-            draft.environment.macro_conditions.append(trimmed)
-
-        draft.metadata.updated_at = utc_now()
-        draft.provenance.append(
-            ProvenanceRecord(
-                kind=ProvenanceKind.OPERATOR_DEFINED,
-                source="setup.message",
-                detail=trimmed,
-                confidence=1.0,
-            )
-        )
-        draft.unresolved_items = self.compute_unresolved_items(draft)
-
     def extract_facts(self, draft: WorldMatrixDraft) -> list[str]:
-        facts: list[str] = []
-        if draft.environment.description:
-            facts.append(f"Environment described: {draft.environment.description}")
-        if draft.domain.time_scope != "unspecified":
-            facts.append(f"Time scope: {draft.domain.time_scope}")
-        if draft.domain.spatial_scope != "unspecified":
-            facts.append(f"Spatial scope: {draft.domain.spatial_scope}")
-        return facts
+        return self.mapper.extract_facts(draft)
 
     def build_pending_questions(self, draft: WorldMatrixDraft) -> list[PendingQuestion]:
         questions: list[PendingQuestion] = []
@@ -188,6 +169,20 @@ class ProjectService:
                 PendingQuestion(
                     prompt="What locations or spatial boundaries matter for this simulation?",
                     rationale="The setup flow needs explicit spatial scope before scenario derivation.",
+                )
+            )
+        if not draft.entities and not draft.polities:
+            questions.append(
+                PendingQuestion(
+                    prompt="Who are the key actors, entities, or polities in this world?",
+                    rationale="Scenario authoring needs a first pass of participants before branching or runtime work.",
+                )
+            )
+        if not draft.rules:
+            questions.append(
+                PendingQuestion(
+                    prompt="What rules, constraints, or forbidden actions should govern the world?",
+                    rationale="Validation should capture action boundaries before compile hardens the draft.",
                 )
             )
         return questions
@@ -256,3 +251,13 @@ class ProjectService:
         if validation.compile_readiness:
             return ValidationState.READY_TO_COMPILE
         return ValidationState.NEEDS_ATTENTION
+
+    @staticmethod
+    def phase_for(draft: WorldMatrixDraft) -> SessionPhase:
+        if not draft.environment.description:
+            return SessionPhase.INTENT_FRAMING
+        if not draft.entities and not draft.polities:
+            return SessionPhase.WORLD_POPULATION
+        if not draft.rules:
+            return SessionPhase.RULES_AND_KNOWLEDGE_BOUNDARIES
+        return SessionPhase.VALIDATION_PASS

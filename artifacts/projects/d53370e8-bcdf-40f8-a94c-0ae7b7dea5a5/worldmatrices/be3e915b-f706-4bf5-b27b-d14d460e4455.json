@@ -1,0 +1,124 @@
+{
+  "id": "be3e915b-f706-4bf5-b27b-d14d460e4455",
+  "project_id": "d53370e8-bcdf-40f8-a94c-0ae7b7dea5a5",
+  "version": 1,
+  "draft_source_id": "a4962b35-cd76-4e0f-891c-a611e4a9d484",
+  "compiled_at": "2026-03-13T10:35:09.042688Z",
+  "compatibility_version": "worldmatrix.v1",
+  "payload": {
+    "metadata": {
+      "title": "Regional crisis sim",
+      "description": "A constrained geopolitical crisis setup.",
+      "author_operator": "architect",
+      "version": 1,
+      "created_at": "2026-03-13T10:35:09.024635Z",
+      "updated_at": "2026-03-13T10:35:09.034953Z"
+    },
+    "domain": {
+      "domain_type": "geopolitical",
+      "ontology_pack": "baseline",
+      "time_scope": "near-future",
+      "spatial_scope": "the Persian Gulf",
+      "realism_mode": "mixed"
+    },
+    "environment": {
+      "description": "The world is a near-future Gulf crisis in the Persian Gulf centered on maritime escalation.",
+      "locations": [
+        "the Persian Gulf"
+      ],
+      "environmental_attributes": [],
+      "macro_conditions": []
+    },
+    "entities": [],
+    "polities": [],
+    "relationships": [],
+    "resources": [],
+    "rules": [],
+    "knowledge_layers": {
+      "world_truth": [],
+      "public_knowledge": [],
+      "polity_private": {},
+      "entity_private": {},
+      "contested_claims": [],
+      "operator_visibility": [
+        "world_truth",
+        "public_knowledge"
+      ]
+    },
+    "operator_role": {
+      "mode": "observer",
+      "bindings": [],
+      "permissions": [
+        "view_worldmatrix",
+        "compile_worldmatrix"
+      ],
+      "visibility_scope": [
+        "world_truth",
+        "public_knowledge"
+      ]
+    },
+    "simulation_profile": {
+      "simulation_style": "turn_based",
+      "turn_cadence": "discrete",
+      "branching_policy": "manual",
+      "abstraction_level": "mvp",
+      "evaluation_mode": "qualitative"
+    },
+    "provenance": [
+      {
+        "kind": "operator_defined",
+        "source": "project.create",
+        "detail": "Initial project framing supplied by operator.",
+        "confidence": 1.0,
+        "recorded_at": "2026-03-13T10:35:09.024627Z"
+      },
+      {
+        "kind": "operator_defined",
+        "source": "setup.message",
+        "detail": "The world is a near-future Gulf crisis in the Persian Gulf centered on maritime escalation.",
+        "confidence": 1.0,
+        "recorded_at": "2026-03-13T10:35:09.034949Z"
+      }
+    ],
+    "validation": {
+      "required_section_completeness": {
+        "metadata": true,
+        "domain": true,
+        "environment": true,
+        "operator_role": true
+      },
+      "unresolved_blockers": [],
+      "warnings": [],
+      "compile_readiness": true,
+      "issues": []
+    }
+  },
+  "validation_report": {
+    "required_section_completeness": {
+      "metadata": true,
+      "domain": true,
+      "environment": true,
+      "operator_role": true
+    },
+    "unresolved_blockers": [],
+    "warnings": [],
+    "compile_readiness": true,
+    "issues": []
+  },
+  "provenance_manifest": [
+    {
+      "kind": "operator_defined",
+      "source": "project.create",
+      "detail": "Initial project framing supplied by operator.",
+      "confidence": 1.0,
+      "recorded_at": "2026-03-13T10:35:09.024627Z"
+    },
+    {
+      "kind": "operator_defined",
+      "source": "setup.message",
+      "detail": "The world is a near-future Gulf crisis in the Persian Gulf centered on maritime escalation.",
+      "confidence": 1.0,
+      "recorded_at": "2026-03-13T10:35:09.034949Z"
+    }
+  ]
+}

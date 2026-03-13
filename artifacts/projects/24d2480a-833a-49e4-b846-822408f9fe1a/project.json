@@ -1,0 +1,9 @@
+{
+  "id": "24d2480a-833a-49e4-b846-822408f9fe1a",
+  "name": "Escalation ladder sim",
+  "description": "A compact regional escalation model.",
+  "domain_type": "geopolitical",
+  "created_at": "2026-03-13T10:35:09.046408Z",
+  "updated_at": "2026-03-13T10:35:09.046409Z",
+  "status": "active"
+}
