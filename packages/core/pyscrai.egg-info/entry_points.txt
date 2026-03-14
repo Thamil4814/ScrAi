@@ -1,3 +1,0 @@
-[console_scripts]
-pyscrai = pyscrai.interfaces.cli:main
-pyscrai-api = pyscrai.interfaces.api:run

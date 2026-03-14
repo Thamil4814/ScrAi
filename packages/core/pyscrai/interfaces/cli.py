@@ -36,7 +36,9 @@ def _parse_key_values(items: list[str]) -> dict[str, str]:
 
 def _session_summary_payload(session: SetupSession) -> dict[str, object]:
     data = session.model_dump(mode="json")
-    next_question = data["pending_questions"][0]["prompt"] if data["pending_questions"] else None
+    next_question = (
+        data["pending_questions"][0]["prompt"] if data["pending_questions"] else None
+    )
     return {
         "session_id": data["id"],
         "phase": data["phase"],
@@ -48,7 +50,9 @@ def _session_summary_payload(session: SetupSession) -> dict[str, object]:
 @app.command("create-project")
 def create_project(name: str, description: str, domain_type: DomainType) -> None:
     project = service.create_project(
-        ProjectCreateRequest(name=name, description=description, domain_type=domain_type)
+        ProjectCreateRequest(
+            name=name, description=description, domain_type=domain_type
+        )
     )
     _emit(project.model_dump(mode="json"))
 
@@ -69,8 +73,12 @@ def show_project(project_id: str) -> None:
 def bootstrap_project(
     prompt: str,
     operator: str | None = typer.Option(default=None, help="Optional operator label."),
-    name: str | None = typer.Option(default=None, help="Override generated project name."),
-    domain_type_hint: DomainType | None = typer.Option(default=None, help="Optional domain override."),
+    name: str | None = typer.Option(
+        default=None, help="Override generated project name."
+    ),
+    domain_type_hint: DomainType | None = typer.Option(
+        default=None, help="Optional domain override."
+    ),
 ) -> None:
     response = service.bootstrap_project(
         ProjectBootstrapRequest(
@@ -91,7 +99,9 @@ def start_session(project_id: str) -> None:
 
 @app.command("add-setup-message")
 def add_setup_message(session_id: str, content: str) -> None:
-    session = service.add_setup_message(session_id, SetupMessageRequest(role="operator", content=content))
+    session = service.add_setup_message(
+        session_id, SetupMessageRequest(role="operator", content=content)
+    )
     _emit(session.model_dump(mode="json"))
 
 
@@ -105,7 +115,9 @@ def show_session(session_id: str) -> None:
 def guided_setup(
     session_id: str,
     max_turns: int = typer.Option(default=5, min=1, max=50),
-    exit_word: str = typer.Option(default="done", help="Type this answer to stop early."),
+    exit_word: str = typer.Option(
+        default="done", help="Type this answer to stop early."
+    ),
 ) -> None:
     session = service.get_setup_session(session_id)
     for _ in range(max_turns):
@@ -113,10 +125,12 @@ def guided_setup(
         _emit(summary)
         if not summary["next_question"]:
             break
-        answer = typer.prompt(summary["next_question"])
+        answer = typer.prompt(str(summary["next_question"]))
         if answer.strip().casefold() == exit_word.casefold():
             break
-        session = service.add_setup_message(session_id, SetupMessageRequest(role="operator", content=answer))
+        session = service.add_setup_message(
+            session_id, SetupMessageRequest(role="operator", content=answer)
+        )
     _emit(session.model_dump(mode="json"))
 
 
@@ -142,8 +156,12 @@ def compile_worldmatrix(project_id: str) -> None:
 def create_branch(
     worldmatrix_id: str,
     title: str,
-    modification: list[str] | None = typer.Option(default=None, help="Repeatable branch modification."),
-    initial_condition: list[str] | None = typer.Option(default=None, help="Repeatable initial condition."),
+    modification: list[str] | None = typer.Option(
+        default=None, help="Repeatable branch modification."
+    ),
+    initial_condition: list[str] | None = typer.Option(
+        default=None, help="Repeatable initial condition."
+    ),
     branch_notes: str = typer.Option(default="", help="Branch note."),
 ) -> None:
     branch = service.create_worldbranch(
@@ -161,9 +179,15 @@ def create_branch(
 @app.command("create-scenario")
 def create_scenario(
     branch_id: str,
-    binding: list[str] | None = typer.Option(default=None, help="Repeatable role=actor mapping."),
-    state: list[str] | None = typer.Option(default=None, help="Repeatable key=value initial state."),
-    stop_condition: list[str] | None = typer.Option(default=None, help="Repeatable stop condition."),
+    binding: list[str] | None = typer.Option(
+        default=None, help="Repeatable role=actor mapping."
+    ),
+    state: list[str] | None = typer.Option(
+        default=None, help="Repeatable key=value initial state."
+    ),
+    stop_condition: list[str] | None = typer.Option(
+        default=None, help="Repeatable stop condition."
+    ),
 ) -> None:
     scenario = service.create_scenario(
         branch_id,
@@ -181,11 +205,15 @@ def run_scenario(
     scenario_id: str,
     turn_limit: int | None = typer.Option(default=None, min=1, max=50),
     objective: str = typer.Option(default="stability_probe"),
-    inject_event: list[str] | None = typer.Option(default=None, help="Repeatable injected event."),
+    inject_event: list[str] | None = typer.Option(
+        default=None, help="Repeatable injected event."
+    ),
 ) -> None:
     run = service.run_scenario(
         scenario_id,
-        SimulationRunRequest(turn_limit=turn_limit, objective=objective, inject_events=inject_event or []),
+        SimulationRunRequest(
+            turn_limit=turn_limit, objective=objective, inject_events=inject_event or []
+        ),
     )
     _emit(run.model_dump(mode="json"))
 

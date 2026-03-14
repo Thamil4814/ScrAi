@@ -5,6 +5,8 @@ import re
 from pyscrai.application.setup_mapper import SetupInterviewMapper
 from pyscrai.contracts.models import (
     CompileMetadata,
+    DomainProfile,
+    MetadataProfile,
     PendingQuestion,
     Project,
     ProjectBootstrapRequest,
@@ -27,13 +29,21 @@ from pyscrai.contracts.models import (
     WorldMatrixDraft,
     WorldMatrixPayload,
 )
-from pyscrai.domain.enums import DomainType, ProjectStatus, ProvenanceKind, SessionPhase, ValidationState
+from pyscrai.domain.enums import (
+    DomainType,
+    ProjectStatus,
+    ProvenanceKind,
+    SessionPhase,
+    ValidationState,
+)
 from pyscrai.runtime.engine import ScenarioRuntimeEngine
 from pyscrai.services.repository import ArtifactRepository
 
 
 class ProjectService:
-    TITLE_PREFIX_PATTERN = re.compile(r"^(build|create|make|generate|design)\s+(?:a|an|the)?\s*", re.IGNORECASE)
+    TITLE_PREFIX_PATTERN = re.compile(
+        r"^(build|create|make|generate|design)\s+(?:a|an|the)?\s*", re.IGNORECASE
+    )
     DOMAIN_KEYWORDS: dict[DomainType, tuple[str, ...]] = {
         DomainType.GEOPOLITICAL: (
             "geopolitical",
@@ -93,14 +103,14 @@ class ProjectService:
         )
         draft = WorldMatrixDraft(
             project_id=project.id,
-            metadata={
-                "title": request.name,
-                "description": request.description,
-                "author_operator": request.operator,
-            },
-            domain={
-                "domain_type": request.domain_type,
-            },
+            metadata=MetadataProfile(
+                title=request.name,
+                description=request.description,
+                author_operator=request.operator,
+            ),
+            domain=DomainProfile(
+                domain_type=request.domain_type,
+            ),
             provenance=[
                 ProvenanceRecord(
                     kind=ProvenanceKind.OPERATOR_DEFINED,
@@ -123,9 +133,13 @@ class ProjectService:
     def get_project(self, project_id: str) -> Project:
         return self.repository.load_project(project_id)
 
-    def bootstrap_project(self, request: ProjectBootstrapRequest) -> ProjectBootstrapResponse:
+    def bootstrap_project(
+        self, request: ProjectBootstrapRequest
+    ) -> ProjectBootstrapResponse:
         domain_type = request.domain_type_hint or self.infer_domain_type(request.prompt)
-        project_name = request.name or self.project_name_from_prompt(request.prompt, domain_type)
+        project_name = request.name or self.project_name_from_prompt(
+            request.prompt, domain_type
+        )
         project = self.create_project(
             ProjectCreateRequest(
                 name=project_name,
@@ -146,11 +160,17 @@ class ProjectService:
             )
             self.repository.save_draft(draft)
         session = self.create_setup_session(project.id)
-        session = self.add_setup_message(session.id, SetupMessageRequest(role="operator", content=request.prompt))
+        session = self.add_setup_message(
+            session.id, SetupMessageRequest(role="operator", content=request.prompt)
+        )
         draft = self.get_worldmatrix_draft(project.id)
-        return ProjectBootstrapResponse(project=project, setup_session=session, draft=draft)
+        return ProjectBootstrapResponse(
+            project=project, setup_session=session, draft=draft
+        )
 
-    def create_setup_session(self, project_id: str, request: SetupSessionCreateRequest | None = None) -> SetupSession:
+    def create_setup_session(
+        self, project_id: str, request: SetupSessionCreateRequest | None = None
+    ) -> SetupSession:
         draft = self.repository.load_draft(project_id)
         session_phase = request.phase if request is not None else self.phase_for(draft)
         session = SetupSession(
@@ -163,7 +183,9 @@ class ProjectService:
         self.repository.save_session(session)
         return session
 
-    def add_setup_message(self, session_id: str, request: SetupMessageRequest) -> SetupSession:
+    def add_setup_message(
+        self, session_id: str, request: SetupMessageRequest
+    ) -> SetupSession:
         session = self.repository.load_session(session_id)
         draft = self.repository.load_draft(session.project_id)
         message = SetupMessage(role=request.role, content=request.content)
@@ -171,14 +193,20 @@ class ProjectService:
 
         if request.role == "operator":
             current_phase = session.phase
-            mapping_result = self.mapper.apply_operator_message(draft, request.content, current_phase)
+            mapping_result = self.mapper.apply_operator_message(
+                draft, request.content, current_phase
+            )
             draft.validation = self.validate_draft_model(draft)
             draft.unresolved_items = self.compute_unresolved_items(draft)
             draft.validation_state = self.validation_state_for(draft.validation)
             session.extracted_facts = mapping_result.extracted_facts
             session.phase = self.phase_for(draft)
-            session.pending_questions = self.build_pending_questions(draft, session.phase)
-            self._append_architect_follow_up(session, draft, mapping_result.captured_updates)
+            session.pending_questions = self.build_pending_questions(
+                draft, session.phase
+            )
+            self._append_architect_follow_up(
+                session, draft, mapping_result.captured_updates
+            )
             self.repository.save_draft(draft)
 
         self.repository.save_session(session)
@@ -244,7 +272,9 @@ class ProjectService:
     def get_worldmatrix(self, worldmatrix_id: str) -> WorldMatrix:
         return self.repository.load_worldmatrix(worldmatrix_id)
 
-    def create_worldbranch(self, worldmatrix_id: str, request: WorldBranchCreateRequest) -> WorldBranch:
+    def create_worldbranch(
+        self, worldmatrix_id: str, request: WorldBranchCreateRequest
+    ) -> WorldBranch:
         worldmatrix = self.repository.load_worldmatrix(worldmatrix_id)
         branch = WorldBranch(
             worldmatrix_id=worldmatrix_id,
@@ -257,7 +287,9 @@ class ProjectService:
         self.repository.save_worldbranch(worldmatrix.project_id, branch)
         return branch
 
-    def create_scenario(self, branch_id: str, request: ScenarioCreateRequest) -> Scenario:
+    def create_scenario(
+        self, branch_id: str, request: ScenarioCreateRequest
+    ) -> Scenario:
         branch = self.repository.load_worldbranch(branch_id)
         worldmatrix = self.repository.load_worldmatrix(branch.worldmatrix_id)
         scenario = Scenario(
@@ -274,11 +306,15 @@ class ProjectService:
     def get_scenario(self, scenario_id: str) -> Scenario:
         return self.repository.load_scenario(scenario_id)
 
-    def run_scenario(self, scenario_id: str, request: SimulationRunRequest | None = None) -> SimulationRun:
+    def run_scenario(
+        self, scenario_id: str, request: SimulationRunRequest | None = None
+    ) -> SimulationRun:
         scenario = self.repository.load_scenario(scenario_id)
         branch = self.repository.load_worldbranch(scenario.worldbranch_id)
         worldmatrix = self.repository.load_worldmatrix(branch.worldmatrix_id)
-        run = self.runtime_engine.run(scenario=scenario, branch=branch, worldmatrix=worldmatrix, request=request)
+        run = self.runtime_engine.run(
+            scenario=scenario, branch=branch, worldmatrix=worldmatrix, request=request
+        )
         self.repository.save_simulation_run(worldmatrix.project_id, run)
         return run
 
@@ -286,9 +322,13 @@ class ProjectService:
         return self.repository.load_simulation_run(run_id)
 
     def _write_compile_bundle(self, worldmatrix: WorldMatrix) -> None:
-        bundle_dir = self.repository.compile_bundle_dir(worldmatrix.project_id, worldmatrix.id)
+        bundle_dir = self.repository.compile_bundle_dir(
+            worldmatrix.project_id, worldmatrix.id
+        )
         metadata = CompileMetadata(compiled_at=worldmatrix.compiled_at)
-        self.repository.write_json(bundle_dir / "worldmatrix.json", worldmatrix.payload.model_dump(mode="json"))
+        self.repository.write_json(
+            bundle_dir / "worldmatrix.json", worldmatrix.payload.model_dump(mode="json")
+        )
         self.repository.write_json(
             bundle_dir / "validation_report.json",
             worldmatrix.validation_report.model_dump(mode="json"),
@@ -297,7 +337,9 @@ class ProjectService:
             bundle_dir / "provenance_manifest.json",
             [item.model_dump(mode="json") for item in worldmatrix.provenance_manifest],
         )
-        self.repository.write_json(bundle_dir / "compile_metadata.json", metadata.model_dump(mode="json"))
+        self.repository.write_json(
+            bundle_dir / "compile_metadata.json", metadata.model_dump(mode="json")
+        )
 
     def extract_facts(self, draft: WorldMatrixDraft) -> list[str]:
         return self.mapper.extract_facts(draft)
@@ -334,21 +376,30 @@ class ProjectService:
     ) -> list[PendingQuestion]:
         active_phase = phase or self.phase_for(draft)
         questions: list[PendingQuestion] = []
-        if active_phase == SessionPhase.INTENT_FRAMING and not draft.environment.description:
+        if (
+            active_phase == SessionPhase.INTENT_FRAMING
+            and not draft.environment.description
+        ):
             questions.append(
                 PendingQuestion(
                     prompt="What is the core environment or situation this world should model?",
                     rationale="The WorldMatrix cannot compile without a concrete world description.",
                 )
             )
-        if active_phase == SessionPhase.INTENT_FRAMING and draft.domain.time_scope == "unspecified":
+        if (
+            active_phase == SessionPhase.INTENT_FRAMING
+            and draft.domain.time_scope == "unspecified"
+        ):
             questions.append(
                 PendingQuestion(
                     prompt="What time scope should govern this world?",
                     rationale="Scenario framing depends on an explicit temporal boundary.",
                 )
             )
-        if active_phase == SessionPhase.INTENT_FRAMING and draft.domain.spatial_scope == "unspecified":
+        if (
+            active_phase == SessionPhase.INTENT_FRAMING
+            and draft.domain.spatial_scope == "unspecified"
+        ):
             questions.append(
                 PendingQuestion(
                     prompt="What locations or spatial boundaries matter for this simulation?",
@@ -369,7 +420,10 @@ class ProjectService:
                     rationale="World population should include the major collective actors before rules are finalized.",
                 )
             )
-        if active_phase == SessionPhase.RULES_AND_KNOWLEDGE_BOUNDARIES and not draft.rules:
+        if (
+            active_phase == SessionPhase.RULES_AND_KNOWLEDGE_BOUNDARIES
+            and not draft.rules
+        ):
             questions.append(
                 PendingQuestion(
                     prompt="What rules, constraints, or forbidden actions should govern the world?",

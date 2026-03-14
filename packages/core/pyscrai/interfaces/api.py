@@ -56,7 +56,9 @@ def bootstrap_project(request: ProjectBootstrapRequest) -> ProjectBootstrapRespo
 
 
 @app.post("/projects/{project_id}/setup-sessions", response_model=SetupSession)
-def create_setup_session(project_id: str, request: SetupSessionCreateRequest | None = None) -> SetupSession:
+def create_setup_session(
+    project_id: str, request: SetupSessionCreateRequest | None = None
+) -> SetupSession:
     try:
         return service.create_setup_session(project_id, request)
     except NotFoundError as exc:
@@ -87,7 +89,10 @@ def get_worldmatrix_draft(project_id: str) -> WorldMatrixDraft:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@app.post("/projects/{project_id}/worldmatrix-draft/validate", response_model=ValidationSummary)
+@app.post(
+    "/projects/{project_id}/worldmatrix-draft/validate",
+    response_model=ValidationSummary,
+)
 def validate_worldmatrix_draft(project_id: str) -> ValidationSummary:
     try:
         return service.validate_worldmatrix_draft(project_id)
@@ -95,7 +100,9 @@ def validate_worldmatrix_draft(project_id: str) -> ValidationSummary:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@app.post("/projects/{project_id}/worldmatrix-draft/compile", response_model=WorldMatrix)
+@app.post(
+    "/projects/{project_id}/worldmatrix-draft/compile", response_model=WorldMatrix
+)
 def compile_worldmatrix_draft(project_id: str) -> WorldMatrix:
     try:
         return service.compile_worldmatrix(project_id)
@@ -114,7 +121,9 @@ def get_worldmatrix(worldmatrix_id: str) -> WorldMatrix:
 
 
 @app.post("/worldmatrices/{worldmatrix_id}/branches", response_model=WorldBranch)
-def create_worldbranch(worldmatrix_id: str, request: WorldBranchCreateRequest) -> WorldBranch:
+def create_worldbranch(
+    worldmatrix_id: str, request: WorldBranchCreateRequest
+) -> WorldBranch:
     try:
         return service.create_worldbranch(worldmatrix_id, request)
     except NotFoundError as exc:
@@ -138,7 +147,9 @@ def get_scenario(scenario_id: str) -> Scenario:
 
 
 @app.post("/scenarios/{scenario_id}/runs", response_model=SimulationRun)
-def run_scenario(scenario_id: str, request: SimulationRunRequest | None = None) -> SimulationRun:
+def run_scenario(
+    scenario_id: str, request: SimulationRunRequest | None = None
+) -> SimulationRun:
     try:
         return service.run_scenario(scenario_id, request)
     except NotFoundError as exc:

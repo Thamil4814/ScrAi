@@ -30,7 +30,9 @@ class ScenarioRuntimeEngine:
     ) -> SimulationRun:
         config = request or SimulationRunRequest()
         actors = self._resolve_actors(scenario, worldmatrix.payload.entities)
-        turn_limit = self._resolve_turn_limit(config.turn_limit, scenario.stop_conditions)
+        turn_limit = self._resolve_turn_limit(
+            config.turn_limit, scenario.stop_conditions
+        )
         tension = self._initial_tension(scenario.initial_state.get("tension"))
         stop_conditions = [item.casefold() for item in scenario.stop_conditions]
 
@@ -47,7 +49,9 @@ class ScenarioRuntimeEngine:
         for turn in range(1, turn_limit + 1):
             turns_executed = turn
             for actor_index, actor in enumerate(actors):
-                action = self.ACTION_CYCLE[(turn + actor_index) % len(self.ACTION_CYCLE)]
+                action = self.ACTION_CYCLE[
+                    (turn + actor_index) % len(self.ACTION_CYCLE)
+                ]
                 if action == "pressure":
                     pressure_actions += 1
                 if action == "negotiate":
@@ -83,8 +87,18 @@ class ScenarioRuntimeEngine:
                 stop_reason = "de-escalation reached"
                 break
 
-        volatility = sum(abs(current - previous) for previous, current in zip(tension_history, tension_history[1:]))
-        stability_score = max(0, 100 - (tension * 8) - (pressure_actions * 4) + (negotiate_actions * 3) - (volatility * 2))
+        volatility = sum(
+            abs(current - previous)
+            for previous, current in zip(tension_history, tension_history[1:])
+        )
+        stability_score = max(
+            0,
+            100
+            - (tension * 8)
+            - (pressure_actions * 4)
+            + (negotiate_actions * 3)
+            - (volatility * 2),
+        )
         run.completed_at = utc_now()
         run.result_summary = {
             "objective": config.objective,
@@ -110,13 +124,19 @@ class ScenarioRuntimeEngine:
         return ["actor_alpha", "actor_bravo"]
 
     @classmethod
-    def _resolve_turn_limit(cls, request_limit: int | None, stop_conditions: Iterable[str]) -> int:
+    def _resolve_turn_limit(
+        cls, request_limit: int | None, stop_conditions: Iterable[str]
+    ) -> int:
         explicit_limit = request_limit
         for condition in stop_conditions:
             match = cls.TURN_LIMIT_PATTERN.search(condition)
             if match:
                 matched_limit = int(match.group(1))
-                explicit_limit = matched_limit if explicit_limit is None else min(explicit_limit, matched_limit)
+                explicit_limit = (
+                    matched_limit
+                    if explicit_limit is None
+                    else min(explicit_limit, matched_limit)
+                )
         return explicit_limit or 6
 
     @classmethod
@@ -135,4 +155,7 @@ class ScenarioRuntimeEngine:
 
     @staticmethod
     def _deescalation_reached(stop_conditions: list[str], tension: int) -> bool:
-        return any("de-escalation" in condition for condition in stop_conditions) and tension <= 2
+        return (
+            any("de-escalation" in condition for condition in stop_conditions)
+            and tension <= 2
+        )

@@ -10,6 +10,12 @@ This repository now contains a thin but runnable MVP vertical slice:
 - deterministic scenario runtime test loop with trace artifacts
 - a Typer CLI for local bootstrap and run operations
 
+Primary design and status docs live in `docs/devops/`:
+
+- `pyscrai_blueprint.md` is the implementation source of truth
+- `vision.md` defines product direction and architectural boundaries
+- `current_status.md` tracks the repo's current position against the blueprint
+
 ## Baseline setup
 
 ```bash
@@ -28,6 +34,17 @@ uv run pyscrai-api
 
 ```bash
 uv run pyscrai --help
+```
+
+## Developer checks
+
+Use these commands for the most common linting and type-check workflows:
+
+```bash
+uv run ruff check .        # Run lint checks across the workspace
+uv run ruff format .       # Apply Ruff formatting to the workspace
+uv run mypy packages/core  # Run static type checking on the core package
+uv run pyright             # Run Pyright type analysis using project config/defaults
 ```
 
 ## Quick MVP CLI path

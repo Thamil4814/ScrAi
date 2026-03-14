@@ -150,14 +150,20 @@ class KnowledgeLayers(ModelBase):
     polity_private: dict[str, list[str]] = Field(default_factory=dict)
     entity_private: dict[str, list[str]] = Field(default_factory=dict)
     contested_claims: list[str] = Field(default_factory=list)
-    operator_visibility: list[str] = Field(default_factory=lambda: ["world_truth", "public_knowledge"])
+    operator_visibility: list[str] = Field(
+        default_factory=lambda: ["world_truth", "public_knowledge"]
+    )
 
 
 class OperatorRole(ModelBase):
     mode: OperatorMode = OperatorMode.OBSERVER
     bindings: list[str] = Field(default_factory=list)
-    permissions: list[str] = Field(default_factory=lambda: ["view_worldmatrix", "compile_worldmatrix"])
-    visibility_scope: list[str] = Field(default_factory=lambda: ["world_truth", "public_knowledge"])
+    permissions: list[str] = Field(
+        default_factory=lambda: ["view_worldmatrix", "compile_worldmatrix"]
+    )
+    visibility_scope: list[str] = Field(
+        default_factory=lambda: ["world_truth", "public_knowledge"]
+    )
 
 
 class SimulationProfile(ModelBase):

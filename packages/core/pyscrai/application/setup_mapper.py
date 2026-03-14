@@ -3,7 +3,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from pyscrai.contracts.models import Entity, Polity, ProvenanceRecord, Rule, WorldMatrixDraft, utc_now
+from pyscrai.contracts.models import (
+    Entity,
+    Polity,
+    ProvenanceRecord,
+    Rule,
+    WorldMatrixDraft,
+    utc_now,
+)
 from pyscrai.domain.enums import OperatorMode, ProvenanceKind, SessionPhase
 
 
@@ -19,7 +26,12 @@ class SetupInterviewMapper:
     RULE_CUES = ("rules", "constraints")
     TIME_PATTERNS = (
         (re.compile(r"\bnear[- ]future\b", re.IGNORECASE), "near-future"),
-        (re.compile(r"\bpresent[- ]day\b|\bcurrent day\b|\bmodern day\b", re.IGNORECASE), "present-day"),
+        (
+            re.compile(
+                r"\bpresent[- ]day\b|\bcurrent day\b|\bmodern day\b", re.IGNORECASE
+            ),
+            "present-day",
+        ),
         (re.compile(r"\b(\d{4}s)\b"), None),
         (re.compile(r"\b(\d{4})\b"), None),
     )
@@ -42,15 +54,34 @@ class SetupInterviewMapper:
         ),
     )
     OPERATOR_MODE_PATTERNS = (
-        (re.compile(r"\boperator (?:mode|role)\s+(?:is|=)\s+observer\b", re.IGNORECASE), OperatorMode.OBSERVER),
-        (re.compile(r"\boperator (?:mode|role)\s+(?:is|=)\s+director\b", re.IGNORECASE), OperatorMode.DIRECTOR),
-        (re.compile(r"\boperator (?:mode|role)\s+(?:is|=)\s+zeus\b", re.IGNORECASE), OperatorMode.ZEUS),
         (
-            re.compile(r"\boperator (?:mode|role)\s+(?:is|=)\s+entity possession\b", re.IGNORECASE),
+            re.compile(
+                r"\boperator (?:mode|role)\s+(?:is|=)\s+observer\b", re.IGNORECASE
+            ),
+            OperatorMode.OBSERVER,
+        ),
+        (
+            re.compile(
+                r"\boperator (?:mode|role)\s+(?:is|=)\s+director\b", re.IGNORECASE
+            ),
+            OperatorMode.DIRECTOR,
+        ),
+        (
+            re.compile(r"\boperator (?:mode|role)\s+(?:is|=)\s+zeus\b", re.IGNORECASE),
+            OperatorMode.ZEUS,
+        ),
+        (
+            re.compile(
+                r"\boperator (?:mode|role)\s+(?:is|=)\s+entity possession\b",
+                re.IGNORECASE,
+            ),
             OperatorMode.ENTITY_POSSESSION,
         ),
         (
-            re.compile(r"\boperator (?:mode|role)\s+(?:is|=)\s+polity possession\b", re.IGNORECASE),
+            re.compile(
+                r"\boperator (?:mode|role)\s+(?:is|=)\s+polity possession\b",
+                re.IGNORECASE,
+            ),
             OperatorMode.POLITY_POSSESSION,
         ),
     )
@@ -88,9 +119,13 @@ class SetupInterviewMapper:
         if draft.operator_role.mode:
             facts.append(f"Operator mode: {draft.operator_role.mode}")
         if draft.entities:
-            facts.append(f"Entities: {', '.join(entity.name for entity in draft.entities)}")
+            facts.append(
+                f"Entities: {', '.join(entity.name for entity in draft.entities)}"
+            )
         if draft.polities:
-            facts.append(f"Polities: {', '.join(polity.name for polity in draft.polities)}")
+            facts.append(
+                f"Polities: {', '.join(polity.name for polity in draft.polities)}"
+            )
         if draft.rules:
             facts.append(f"Rules captured: {len(draft.rules)}")
         return facts
@@ -101,7 +136,9 @@ class SetupInterviewMapper:
             return
         draft.environment.macro_conditions.append(content)
 
-    def _apply_phase_aware_clause(self, draft: WorldMatrixDraft, clause: str, phase: SessionPhase) -> None:
+    def _apply_phase_aware_clause(
+        self, draft: WorldMatrixDraft, clause: str, phase: SessionPhase
+    ) -> None:
         self._apply_time_scope(draft, clause)
         self._apply_spatial_scope(draft, clause)
 
@@ -173,7 +210,11 @@ class SetupInterviewMapper:
                 continue
             draft.rules.append(Rule(category="constraint", description=item))
 
-        forbidden_match = re.search(r"\bforbidden(?: actions?)?\s*(?:are|include|:)\s*(.+)$", content, re.IGNORECASE)
+        forbidden_match = re.search(
+            r"\bforbidden(?: actions?)?\s*(?:are|include|:)\s*(.+)$",
+            content,
+            re.IGNORECASE,
+        )
         if not forbidden_match:
             return
         for item in self._split_list_items(forbidden_match.group(1)):
@@ -188,13 +229,17 @@ class SetupInterviewMapper:
             )
 
     def _apply_knowledge_layers(self, draft: WorldMatrixDraft, content: str) -> None:
-        public_match = re.search(r"\bpublic knows(?: that)?\s+(.+)$", content, re.IGNORECASE)
+        public_match = re.search(
+            r"\bpublic knows(?: that)?\s+(.+)$", content, re.IGNORECASE
+        )
         if public_match:
             claim = public_match.group(1).strip(" .")
             if claim and claim not in draft.knowledge_layers.public_knowledge:
                 draft.knowledge_layers.public_knowledge.append(claim)
 
-        contested_match = re.search(r"\bcontested(?: claims?)?\s*:\s*(.+)$", content, re.IGNORECASE)
+        contested_match = re.search(
+            r"\bcontested(?: claims?)?\s*:\s*(.+)$", content, re.IGNORECASE
+        )
         if contested_match:
             for item in self._split_list_items(contested_match.group(1)):
                 if item not in draft.knowledge_layers.contested_claims:
@@ -207,7 +252,9 @@ class SetupInterviewMapper:
     @staticmethod
     def _extract_list_after_cues(content: str, cues: tuple[str, ...]) -> list[str]:
         for cue in cues:
-            match = re.search(rf"\b{cue}\s*(?:are|include|:)\s*(.+)$", content, re.IGNORECASE)
+            match = re.search(
+                rf"\b{cue}\s*(?:are|include|:)\s*(.+)$", content, re.IGNORECASE
+            )
             if match:
                 return SetupInterviewMapper._split_list_items(match.group(1))
         return []
@@ -215,7 +262,9 @@ class SetupInterviewMapper:
     @staticmethod
     def _split_list_items(raw_items: str) -> list[str]:
         normalized = re.sub(r"\band\b", ",", raw_items, flags=re.IGNORECASE)
-        return [item.strip(" ,.") for item in normalized.split(",") if item.strip(" ,.")]
+        return [
+            item.strip(" ,.") for item in normalized.split(",") if item.strip(" ,.")
+        ]
 
     @staticmethod
     def _has_named_item(items: list[Entity] | list[Polity], candidate: str) -> bool:
@@ -225,7 +274,9 @@ class SetupInterviewMapper:
     @staticmethod
     def _has_rule(rules: list[Rule], candidate: str) -> bool:
         candidate_key = candidate.casefold()
-        return any(rule.description.casefold().endswith(candidate_key) for rule in rules)
+        return any(
+            rule.description.casefold().endswith(candidate_key) for rule in rules
+        )
 
     @staticmethod
     def _append_provenance(draft: WorldMatrixDraft, content: str) -> None:
@@ -253,31 +304,60 @@ class SetupInterviewMapper:
         }
 
     @staticmethod
-    def _captured_updates(before: dict[str, object], draft: WorldMatrixDraft) -> list[str]:
+    def _captured_updates(
+        before: dict[str, object], draft: WorldMatrixDraft
+    ) -> list[str]:
         updates: list[str] = []
-        if before["environment"] != draft.environment.description and draft.environment.description:
+        if (
+            before["environment"] != draft.environment.description
+            and draft.environment.description
+        ):
             updates.append("environment framing")
-        if before["time_scope"] != draft.domain.time_scope and draft.domain.time_scope != "unspecified":
+        if (
+            before["time_scope"] != draft.domain.time_scope
+            and draft.domain.time_scope != "unspecified"
+        ):
             updates.append(f"time scope {draft.domain.time_scope}")
-        if before["spatial_scope"] != draft.domain.spatial_scope and draft.domain.spatial_scope != "unspecified":
+        if (
+            before["spatial_scope"] != draft.domain.spatial_scope
+            and draft.domain.spatial_scope != "unspecified"
+        ):
             updates.append(f"spatial scope {draft.domain.spatial_scope}")
         if before["operator_mode"] != draft.operator_role.mode:
             updates.append(f"operator mode {draft.operator_role.mode}")
 
-        before_entities = set(before["entities"])
-        new_entities = [entity.name for entity in draft.entities if entity.name not in before_entities]
+        before_entities_list = before["entities"]
+        assert isinstance(before_entities_list, list), "Expected entities to be a list"
+        before_entities = set(before_entities_list)
+        new_entities = [
+            entity.name
+            for entity in draft.entities
+            if entity.name not in before_entities
+        ]
         if new_entities:
             updates.append(f"entities {', '.join(new_entities)}")
 
-        before_polities = set(before["polities"])
-        new_polities = [polity.name for polity in draft.polities if polity.name not in before_polities]
+        before_polities_list = before["polities"]
+        assert isinstance(before_polities_list, list), "Expected polities to be a list"
+        before_polities = set(before_polities_list)
+        new_polities = [
+            polity.name
+            for polity in draft.polities
+            if polity.name not in before_polities
+        ]
         if new_polities:
             updates.append(f"polities {', '.join(new_polities)}")
 
-        if before["rule_count"] != len(draft.rules):
-            updates.append(f"{len(draft.rules) - int(before['rule_count'])} rule updates")
-        if before["public_knowledge_count"] != len(draft.knowledge_layers.public_knowledge):
+        rule_count = before["rule_count"]
+        assert isinstance(rule_count, int), "Expected rule_count to be an int"
+        if rule_count != len(draft.rules):
+            updates.append(f"{len(draft.rules) - rule_count} rule updates")
+        if before["public_knowledge_count"] != len(
+            draft.knowledge_layers.public_knowledge
+        ):
             updates.append("public knowledge")
-        if before["contested_claim_count"] != len(draft.knowledge_layers.contested_claims):
+        if before["contested_claim_count"] != len(
+            draft.knowledge_layers.contested_claims
+        ):
             updates.append("contested claims")
         return updates

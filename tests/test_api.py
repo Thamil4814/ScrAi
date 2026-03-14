@@ -18,15 +18,22 @@ def test_bootstrap_project_from_prompt() -> None:
     payload = bootstrap_response.json()
 
     assert payload["project"]["domain_type"] == "geopolitical"
-    assert payload["project"]["name"].startswith("near-future Gulf crisis simulation in the Persian Gulf")
+    assert payload["project"]["name"].startswith(
+        "near-future Gulf crisis simulation in the Persian Gulf"
+    )
     assert payload["project"]["name"].endswith("...")
     assert payload["setup_session"]["phase"] == "world_population"
     assert payload["setup_session"]["transcript"][-1]["role"] == "architect"
-    assert payload["draft"]["environment"]["description"].startswith("Build a near-future Gulf crisis")
+    assert payload["draft"]["environment"]["description"].startswith(
+        "Build a near-future Gulf crisis"
+    )
     assert payload["draft"]["domain"]["time_scope"] == "near-future"
     assert payload["draft"]["domain"]["spatial_scope"] == "the Persian Gulf"
     assert payload["draft"]["validation"]["compile_readiness"] is False
-    assert any(item["source"] == "bootstrap.domain_inference" for item in payload["draft"]["provenance"])
+    assert any(
+        item["source"] == "bootstrap.domain_inference"
+        for item in payload["draft"]["provenance"]
+    )
 
 
 def test_project_setup_flow() -> None:
@@ -65,7 +72,10 @@ def test_project_setup_flow() -> None:
     assert "Time scope: near-future" in session_payload["extracted_facts"]
     assert "Spatial scope: the Persian Gulf" in session_payload["extracted_facts"]
     assert session_payload["transcript"][-1]["role"] == "architect"
-    assert "Who are the key actors or entities" in session_payload["transcript"][-1]["content"]
+    assert (
+        "Who are the key actors or entities"
+        in session_payload["transcript"][-1]["content"]
+    )
 
     draft_response = client.get(f"/projects/{project_id}/worldmatrix-draft")
     assert draft_response.status_code == 200
@@ -74,7 +84,9 @@ def test_project_setup_flow() -> None:
     assert draft_payload["domain"]["spatial_scope"] == "the Persian Gulf"
     assert draft_payload["environment"]["locations"] == ["the Persian Gulf"]
 
-    validate_response = client.post(f"/projects/{project_id}/worldmatrix-draft/validate")
+    validate_response = client.post(
+        f"/projects/{project_id}/worldmatrix-draft/validate"
+    )
     assert validate_response.status_code == 200
     assert validate_response.json()["compile_readiness"] is False
 
@@ -98,7 +110,9 @@ def test_project_setup_flow() -> None:
     assert rules_response.status_code == 200
     assert rules_response.json()["phase"] == "validation_pass"
 
-    validate_response = client.post(f"/projects/{project_id}/worldmatrix-draft/validate")
+    validate_response = client.post(
+        f"/projects/{project_id}/worldmatrix-draft/validate"
+    )
     assert validate_response.status_code == 200
     assert validate_response.json()["compile_readiness"] is True
 
@@ -140,7 +154,10 @@ def test_setup_mapper_populates_multiple_worldmatrix_sections() -> None:
     session_payload = session_response.json()
     session_id = session_payload["id"]
     assert session_payload["phase"] == "intent_framing"
-    assert "What is the core environment or situation" in session_payload["transcript"][-1]["content"]
+    assert (
+        "What is the core environment or situation"
+        in session_payload["transcript"][-1]["content"]
+    )
 
     framing_response = client.post(
         f"/setup-sessions/{session_id}/messages",
@@ -152,7 +169,10 @@ def test_setup_mapper_populates_multiple_worldmatrix_sections() -> None:
     assert framing_response.status_code == 200
     framing_payload = framing_response.json()
     assert framing_payload["phase"] == "world_population"
-    assert "Who are the key actors or entities" in framing_payload["transcript"][-1]["content"]
+    assert (
+        "Who are the key actors or entities"
+        in framing_payload["transcript"][-1]["content"]
+    )
 
     population_response = client.post(
         f"/setup-sessions/{session_id}/messages",
@@ -164,9 +184,18 @@ def test_setup_mapper_populates_multiple_worldmatrix_sections() -> None:
     assert population_response.status_code == 200
     population_payload = population_response.json()
     assert population_payload["phase"] == "rules_and_knowledge_boundaries"
-    assert "Entities: Admiral Rana, Mossad Liaison" in population_payload["extracted_facts"]
-    assert "Polities: Iran, Israel, the United States" in population_payload["extracted_facts"]
-    assert "What rules, constraints, or forbidden actions" in population_payload["transcript"][-1]["content"]
+    assert (
+        "Entities: Admiral Rana, Mossad Liaison"
+        in population_payload["extracted_facts"]
+    )
+    assert (
+        "Polities: Iran, Israel, the United States"
+        in population_payload["extracted_facts"]
+    )
+    assert (
+        "What rules, constraints, or forbidden actions"
+        in population_payload["transcript"][-1]["content"]
+    )
 
     rules_response = client.post(
         f"/setup-sessions/{session_id}/messages",
@@ -184,18 +213,32 @@ def test_setup_mapper_populates_multiple_worldmatrix_sections() -> None:
     assert rules_response.status_code == 200
     rules_payload = rules_response.json()
     assert rules_payload["phase"] == "validation_pass"
-    assert "The current draft is compile-ready" in rules_payload["transcript"][-1]["content"]
+    assert (
+        "The current draft is compile-ready"
+        in rules_payload["transcript"][-1]["content"]
+    )
 
     draft_response = client.get(f"/projects/{project_id}/worldmatrix-draft")
     assert draft_response.status_code == 200
     draft_payload = draft_response.json()
 
     assert draft_payload["operator_role"]["mode"] == "director"
-    assert [entity["name"] for entity in draft_payload["entities"]] == ["Admiral Rana", "Mossad Liaison"]
-    assert [polity["name"] for polity in draft_payload["polities"]] == ["Iran", "Israel", "the United States"]
+    assert [entity["name"] for entity in draft_payload["entities"]] == [
+        "Admiral Rana",
+        "Mossad Liaison",
+    ]
+    assert [polity["name"] for polity in draft_payload["polities"]] == [
+        "Iran",
+        "Israel",
+        "the United States",
+    ]
     assert len(draft_payload["rules"]) == 2
-    assert draft_payload["knowledge_layers"]["public_knowledge"] == ["shipping lanes are threatened"]
-    assert draft_payload["knowledge_layers"]["contested_claims"] == ["who sabotaged the tanker"]
+    assert draft_payload["knowledge_layers"]["public_knowledge"] == [
+        "shipping lanes are threatened"
+    ]
+    assert draft_payload["knowledge_layers"]["contested_claims"] == [
+        "who sabotaged the tanker"
+    ]
 
 
 def test_worldmatrix_branch_scenario_vertical_slice() -> None:

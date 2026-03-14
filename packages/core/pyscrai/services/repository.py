@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TypeVar
 
 from pydantic import BaseModel
 
@@ -14,6 +15,9 @@ from pyscrai.contracts.models import (
     WorldMatrix,
     WorldMatrixDraft,
 )
+from pyscrai.domain.enums import ProjectStatus
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class NotFoundError(FileNotFoundError):
@@ -22,7 +26,9 @@ class NotFoundError(FileNotFoundError):
 
 class ArtifactRepository:
     def __init__(self, root: Path | None = None) -> None:
-        self.root = root or Path(__file__).resolve().parents[4] / "artifacts" / "projects"
+        self.root = (
+            root or Path(__file__).resolve().parents[4] / "artifacts" / "projects"
+        )
         self.root.mkdir(parents=True, exist_ok=True)
 
     def save_project(self, project: Project) -> None:
@@ -38,7 +44,7 @@ class ArtifactRepository:
         projects.sort(key=lambda project: project.created_at, reverse=True)
         return projects
 
-    def update_project_status(self, project_id: str, status: str) -> Project:
+    def update_project_status(self, project_id: str, status: ProjectStatus) -> Project:
         project = self.load_project(project_id)
         project.status = status
         self.save_project(project)
@@ -60,16 +66,22 @@ class ArtifactRepository:
         return self._read_model(session_file, SetupSession)
 
     def save_worldmatrix(self, worldmatrix: WorldMatrix) -> None:
-        self._write_model(self.worldmatrix_path(worldmatrix.project_id, worldmatrix.id), worldmatrix)
+        self._write_model(
+            self.worldmatrix_path(worldmatrix.project_id, worldmatrix.id), worldmatrix
+        )
 
     def load_worldmatrix(self, worldmatrix_id: str) -> WorldMatrix:
-        worldmatrix_file = next(self.root.glob(f"*/worldmatrices/{worldmatrix_id}.json"), None)
+        worldmatrix_file = next(
+            self.root.glob(f"*/worldmatrices/{worldmatrix_id}.json"), None
+        )
         if worldmatrix_file is None:
             raise NotFoundError(f"WorldMatrix {worldmatrix_id} was not found.")
         return self._read_model(worldmatrix_file, WorldMatrix)
 
     def save_worldbranch(self, project_id: str, worldbranch: WorldBranch) -> None:
-        self._write_model(self.worldbranch_path(project_id, worldbranch.id), worldbranch)
+        self._write_model(
+            self.worldbranch_path(project_id, worldbranch.id), worldbranch
+        )
 
     def load_worldbranch(self, branch_id: str) -> WorldBranch:
         branch_file = next(self.root.glob(f"*/worldbranches/{branch_id}.json"), None)
@@ -123,7 +135,7 @@ class ArtifactRepository:
         return self.root / project_id
 
     @staticmethod
-    def _read_model(path: Path, model_type: type[BaseModel]):
+    def _read_model(path: Path, model_type: type[T]) -> T:
         if not path.exists():
             raise NotFoundError(f"Artifact not found: {path}")
         return model_type.model_validate_json(path.read_text())
