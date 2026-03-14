@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from pathlib import Path
 
 from pyscrai.interfaces.api import app
 
@@ -103,7 +104,23 @@ def test_project_setup_flow() -> None:
 
     compile_response = client.post(f"/projects/{project_id}/worldmatrix-draft/compile")
     assert compile_response.status_code == 200
-    assert compile_response.json()["project_id"] == project_id
+    worldmatrix_payload = compile_response.json()
+    assert worldmatrix_payload["project_id"] == project_id
+    worldmatrix_id = worldmatrix_payload["id"]
+
+    project_get_response = client.get(f"/projects/{project_id}")
+    assert project_get_response.status_code == 200
+    assert project_get_response.json()["id"] == project_id
+
+    projects_response = client.get("/projects")
+    assert projects_response.status_code == 200
+    assert any(project["id"] == project_id for project in projects_response.json())
+
+    bundle_dir = Path("artifacts/projects") / project_id / "compiled" / worldmatrix_id
+    assert (bundle_dir / "worldmatrix.json").exists()
+    assert (bundle_dir / "validation_report.json").exists()
+    assert (bundle_dir / "provenance_manifest.json").exists()
+    assert (bundle_dir / "compile_metadata.json").exists()
 
 
 def test_setup_mapper_populates_multiple_worldmatrix_sections() -> None:

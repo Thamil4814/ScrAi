@@ -53,6 +53,18 @@ def create_project(name: str, description: str, domain_type: DomainType) -> None
     _emit(project.model_dump(mode="json"))
 
 
+@app.command("list-projects")
+def list_projects() -> None:
+    projects = service.list_projects()
+    _emit([project.model_dump(mode="json") for project in projects])
+
+
+@app.command("show-project")
+def show_project(project_id: str) -> None:
+    project = service.get_project(project_id)
+    _emit(project.model_dump(mode="json"))
+
+
 @app.command("bootstrap-project")
 def bootstrap_project(
     prompt: str,
@@ -80,6 +92,12 @@ def start_session(project_id: str) -> None:
 @app.command("add-setup-message")
 def add_setup_message(session_id: str, content: str) -> None:
     session = service.add_setup_message(session_id, SetupMessageRequest(role="operator", content=content))
+    _emit(session.model_dump(mode="json"))
+
+
+@app.command("show-session")
+def show_session(session_id: str) -> None:
+    session = service.get_setup_session(session_id)
     _emit(session.model_dump(mode="json"))
 
 

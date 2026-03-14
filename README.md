@@ -37,5 +37,5 @@ uv run pyscrai bootstrap-project "Build a near-future Gulf crisis simulation in 
 uv run pyscrai compile-worldmatrix <project_id>
 uv run pyscrai create-branch <worldmatrix_id> "Baseline branch"
 uv run pyscrai create-scenario <branch_id> --binding lead=admiral --state tension=high --stop-condition turn_limit=8
-uv run pyscrai run-scenario dcaaf4b8-e3ee-4609-8b38-509f2c0eae01 --turn-limit 6
+uv run pyscrai run-scenario <scenario_id> --turn-limit 6
 ```

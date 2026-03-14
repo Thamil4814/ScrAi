@@ -4,6 +4,7 @@ import re
 
 from pyscrai.application.setup_mapper import SetupInterviewMapper
 from pyscrai.contracts.models import (
+    CompileMetadata,
     PendingQuestion,
     Project,
     ProjectBootstrapRequest,
@@ -115,6 +116,12 @@ class ProjectService:
         self.repository.save_project(project)
         self.repository.save_draft(draft)
         return project
+
+    def list_projects(self) -> list[Project]:
+        return self.repository.list_projects()
+
+    def get_project(self, project_id: str) -> Project:
+        return self.repository.load_project(project_id)
 
     def bootstrap_project(self, request: ProjectBootstrapRequest) -> ProjectBootstrapResponse:
         domain_type = request.domain_type_hint or self.infer_domain_type(request.prompt)
@@ -230,6 +237,7 @@ class ProjectService:
         draft.validation_state = ValidationState.COMPILED
         self.repository.save_draft(draft)
         self.repository.save_worldmatrix(worldmatrix)
+        self._write_compile_bundle(worldmatrix)
         self.repository.update_project_status(project_id, ProjectStatus.COMPILED)
         return worldmatrix
 
@@ -276,6 +284,20 @@ class ProjectService:
 
     def get_simulation_run(self, run_id: str) -> SimulationRun:
         return self.repository.load_simulation_run(run_id)
+
+    def _write_compile_bundle(self, worldmatrix: WorldMatrix) -> None:
+        bundle_dir = self.repository.compile_bundle_dir(worldmatrix.project_id, worldmatrix.id)
+        metadata = CompileMetadata(compiled_at=worldmatrix.compiled_at)
+        self.repository.write_json(bundle_dir / "worldmatrix.json", worldmatrix.payload.model_dump(mode="json"))
+        self.repository.write_json(
+            bundle_dir / "validation_report.json",
+            worldmatrix.validation_report.model_dump(mode="json"),
+        )
+        self.repository.write_json(
+            bundle_dir / "provenance_manifest.json",
+            [item.model_dump(mode="json") for item in worldmatrix.provenance_manifest],
+        )
+        self.repository.write_json(bundle_dir / "compile_metadata.json", metadata.model_dump(mode="json"))
 
     def extract_facts(self, draft: WorldMatrixDraft) -> list[str]:
         return self.mapper.extract_facts(draft)

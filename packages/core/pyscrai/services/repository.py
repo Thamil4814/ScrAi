@@ -31,6 +31,13 @@ class ArtifactRepository:
     def load_project(self, project_id: str) -> Project:
         return self._read_model(self.project_path(project_id), Project)
 
+    def list_projects(self) -> list[Project]:
+        projects: list[Project] = []
+        for project_file in self.root.glob("*/project.json"):
+            projects.append(self._read_model(project_file, Project))
+        projects.sort(key=lambda project: project.created_at, reverse=True)
+        return projects
+
     def update_project_status(self, project_id: str, status: str) -> Project:
         project = self.load_project(project_id)
         project.status = status
@@ -109,6 +116,9 @@ class ArtifactRepository:
     def simulation_run_path(self, project_id: str, run_id: str) -> Path:
         return self.project_dir(project_id) / "simulation-runs" / f"{run_id}.json"
 
+    def compile_bundle_dir(self, project_id: str, worldmatrix_id: str) -> Path:
+        return self.project_dir(project_id) / "compiled" / worldmatrix_id
+
     def project_dir(self, project_id: str) -> Path:
         return self.root / project_id
 
@@ -122,3 +132,8 @@ class ArtifactRepository:
     def _write_model(path: Path, model: BaseModel) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(model.model_dump(mode="json"), indent=2))
+
+    @staticmethod
+    def write_json(path: Path, payload: object) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2))

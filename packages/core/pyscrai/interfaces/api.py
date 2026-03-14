@@ -37,6 +37,19 @@ def create_project(request: ProjectCreateRequest) -> Project:
     return service.create_project(request)
 
 
+@app.get("/projects", response_model=list[Project])
+def list_projects() -> list[Project]:
+    return service.list_projects()
+
+
+@app.get("/projects/{project_id}", response_model=Project)
+def get_project(project_id: str) -> Project:
+    try:
+        return service.get_project(project_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.post("/projects/bootstrap", response_model=ProjectBootstrapResponse)
 def bootstrap_project(request: ProjectBootstrapRequest) -> ProjectBootstrapResponse:
     return service.bootstrap_project(request)
