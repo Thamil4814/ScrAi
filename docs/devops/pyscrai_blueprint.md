@@ -535,7 +535,7 @@ Recommendation for fast MVP: **FastAPI + minimal React/Tailwind UI + CLI fallbac
 ### LLM / Agent Backends
 
 * Local model option via LM Studio / Ollama / vLLM-compatible endpoint
-* OpenRouter optional fallback
+* Full openrouter support 
 * Strict capability registry from day one
 
 ### Observability

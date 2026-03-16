@@ -83,3 +83,5 @@ Implemented API surface includes:
 ## Bottom Line
 
 PyScrAI currently proves the blueprint's narrow MVP path as a **working vertical slice**. The next meaningful gains are not more scaffolding, but deeper implementation of persistence, guided authoring intelligence, targeted ingestion, and richer runtime behavior.
+
+## Next Steps: 

@@ -18,7 +18,7 @@ When they differ:
 
 - `pyscrai_blueprint.md` wins on implementation detail, contracts, milestone order, and API shape.
 - `vision.md` wins on product intent and conceptual boundaries.
-- `current_status.md` is a snapshot, not a source of truth.
+- `current_status.md` is a snapshot of the current state. 
 
 ## Product Center
 
@@ -108,8 +108,7 @@ When implementing changes:
 - keep contracts explicit,
 - prefer deterministic behavior over hidden magic,
 - preserve extensibility for later agent-role separation,
-- avoid heavyweight ML or GPU dependencies unless required by the milestone,
-- preserve GPU-capable setups when touching Torch-related dependencies.
+
 
 Avoid:
 
@@ -132,17 +131,3 @@ For `changelog.md` and `issues_comments.md`:
 - use reverse chronological order,
 - include the date on each entry,
 - add a Roman numeral suffix when multiple entries share the same date.
-
-## Definition Of Success
-
-Prefer work that makes this path more real, more reliable, or more observable:
-
-1. create a project from a high-level prompt,
-2. guide the operator through setup,
-3. build and inspect a live WorldMatrix draft,
-4. validate and compile the WorldMatrix,
-5. derive a WorldBranch or Scenario,
-6. instantiate a runtime package,
-7. execute a basic test run with traceable output.
-
-If a proposed change does not clearly strengthen that path, it is probably not the right priority.
