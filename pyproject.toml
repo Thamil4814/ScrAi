@@ -41,6 +41,7 @@ dependencies = [
   "tqdm==4.67.3",
   "types-requests==2.32.4.20260107",
   "urllib3==2.6.3",
+  "streamlit>=1.55.0",
 ]
 
 [project.optional-dependencies]
@@ -52,6 +53,7 @@ dev = [
 [project.scripts]
 pyscrai = "pyscrai.interfaces.cli:main"
 pyscrai-api = "pyscrai.interfaces.api:run"
+pyscrai-forge = "pyscrai.interfaces.forge_app:main"
 
 [tool.setuptools.package-dir]
 "" = "packages/core"

@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 from pyscrai.contracts.models import (
     Project,
+    ProjectManifest,
+    ProjectManifestDraft,
     Scenario,
     SetupSession,
     SimulationRun,
@@ -49,6 +51,18 @@ class ArtifactRepository:
         project.status = status
         self.save_project(project)
         return project
+
+    def save_manifest_draft(self, manifest: ProjectManifestDraft) -> None:
+        self._write_model(self.manifest_draft_path(manifest.project_id), manifest)
+
+    def load_manifest_draft(self, project_id: str) -> ProjectManifestDraft:
+        return self._read_model(self.manifest_draft_path(project_id), ProjectManifestDraft)
+
+    def save_manifest(self, manifest: ProjectManifest) -> None:
+        self._write_model(self.manifest_path(manifest.project_id), manifest)
+
+    def load_manifest(self, project_id: str) -> ProjectManifest:
+        return self._read_model(self.manifest_path(project_id), ProjectManifest)
 
     def save_draft(self, draft: WorldMatrixDraft) -> None:
         self._write_model(self.draft_path(draft.project_id), draft)
@@ -109,6 +123,12 @@ class ArtifactRepository:
 
     def project_path(self, project_id: str) -> Path:
         return self.project_dir(project_id) / "project.json"
+
+    def manifest_draft_path(self, project_id: str) -> Path:
+        return self.project_dir(project_id) / "project_manifest_draft.json"
+
+    def manifest_path(self, project_id: str) -> Path:
+        return self.project_dir(project_id) / "project_manifest.json"
 
     def draft_path(self, project_id: str) -> Path:
         return self.project_dir(project_id) / "worldmatrix_draft.json"

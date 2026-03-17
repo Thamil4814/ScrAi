@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-03-16 I
+
+- Deprecated `pyscrai_blueprint.md`, `vision.md`, and `current_status.md` by moving them to `.dep/`.
+- Introduced `pyscrai_dev_blueprint.md` as the primary development document centering on PyScrAI Forge.
+- Introduced `pyscrai_dev_architecture.md` detailing architectural boundaries.
+- Updated `AGENTS.md` and `README.md` to map to the new repository documentation state.
+
 ## 2026-03-14 I
 
 - Added OpenAI Agents SDK and Redis-related dependencies to the workspace environment for future multi-agent work.

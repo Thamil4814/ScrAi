@@ -15,6 +15,12 @@ class ProjectStatus(StrEnum):
     COMPILED = "compiled"
 
 
+class ForgeMode(StrEnum):
+    MANUAL = "manual"
+    ASSIST = "assist"
+    DELEGATE = "delegate"
+
+
 class SessionPhase(StrEnum):
     BOOTSTRAP = "bootstrap"
     INTENT_FRAMING = "intent_framing"

@@ -10,15 +10,13 @@ Keep this file short, concrete, and current. Do not duplicate the full product s
 
 Before making meaningful changes, read these documents in this order:
 
-1. `docs/devops/pyscrai_blueprint.md`
-2. `docs/devops/vision.md`
-3. `docs/devops/current_status.md`
+1. `docs/devops/pyscrai_dev_blueprint.md`
+2. `docs/devops/pyscrai_dev_architecture.md`
 
 When they differ:
 
-- `pyscrai_blueprint.md` wins on implementation detail, contracts, milestone order, and API shape.
-- `vision.md` wins on product intent and conceptual boundaries.
-- `current_status.md` is a snapshot of the current state. 
+- `pyscrai_dev_blueprint.md` is the primary development document. It wins on product direction, priority, implementation blockages, and what to build next.
+- `pyscrai_dev_architecture.md` wins on target architectural layers, boundary principles, and system model definitions.
 
 ## Product Center
 
@@ -122,7 +120,6 @@ Avoid:
 
 When work materially changes repo state or direction, update the relevant files in `docs/devops/`:
 
-- `current_status.md` for repo-to-blueprint position,
 - `changelog.md` for concise dated change notes,
 - `issues_comments.md` for dated follow-ups, issues, or operator notes.
 

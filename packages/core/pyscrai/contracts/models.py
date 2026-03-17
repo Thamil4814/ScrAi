@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from pyscrai.domain.enums import (
     DomainType,
+    ForgeMode,
     OperatorMode,
     ProjectStatus,
     ProvenanceKind,
@@ -222,6 +223,98 @@ class Project(ModelBase):
     status: ProjectStatus = ProjectStatus.DRAFT
 
 
+class ManifestProjectConfig(ModelBase):
+    id: str
+    name: str
+    description: str
+    created_by: str | None = None
+    domain_type: DomainType
+
+
+class ManifestForgeConfig(ModelBase):
+    mode: ForgeMode = ForgeMode.ASSIST
+    active_surface: str = "authoring"
+    notes: list[str] = Field(default_factory=list)
+
+
+class ManifestModules(ModelBase):
+    core: list[str] = Field(default_factory=lambda: ["authoring", "ingestion", "agent_substrate"])
+    enabled: list[str] = Field(default_factory=list)
+    disabled: list[str] = Field(default_factory=list)
+
+
+class ManifestProviderDefaults(ModelBase):
+    chat: str = "openrouter/<model>"
+    local_chat: str = "lmstudio/<model>"
+    reasoning: str = "openrouter/<model>"
+    embedding: str = "local/<model>"
+
+
+class ManifestProviders(ModelBase):
+    provider_bus: str = "litellm"
+    defaults: ManifestProviderDefaults = Field(default_factory=ManifestProviderDefaults)
+
+
+class ManifestRoutingPolicy(ModelBase):
+    local_first: bool = True
+    allow_remote_reasoning: bool = True
+    allow_remote_ingestion_assist: bool = True
+
+
+class ManifestStorage(ModelBase):
+    artifacts: str = "local_fs"
+    relational: str = "sqlite"
+    vector: str | None = None
+    graph: str | None = None
+    cache: str | None = None
+
+
+class ManifestMemory(ModelBase):
+    session_memory: bool = True
+    long_term_memory: bool = False
+    rag_enabled: bool = False
+
+
+class ManifestTools(ModelBase):
+    mcp_servers: list[str] = Field(default_factory=list)
+    internal_tools: list[str] = Field(default_factory=list)
+
+
+class ManifestRuntime(ModelBase):
+    mode: str = "authoring_only"
+    default_profile: str = "mvp"
+
+
+class ManifestPolicies(ModelBase):
+    operator_approval_required: bool = True
+    allow_auto_scaffold: bool = False
+
+
+class ProjectManifestPayload(ModelBase):
+    project: ManifestProjectConfig
+    forge: ManifestForgeConfig = Field(default_factory=ManifestForgeConfig)
+    modules: ManifestModules = Field(default_factory=ManifestModules)
+    providers: ManifestProviders = Field(default_factory=ManifestProviders)
+    routing_policy: ManifestRoutingPolicy = Field(default_factory=ManifestRoutingPolicy)
+    storage: ManifestStorage = Field(default_factory=ManifestStorage)
+    memory: ManifestMemory = Field(default_factory=ManifestMemory)
+    tools: ManifestTools = Field(default_factory=ManifestTools)
+    runtime: ManifestRuntime = Field(default_factory=ManifestRuntime)
+    policies: ManifestPolicies = Field(default_factory=ManifestPolicies)
+
+
+class ProjectManifestDraft(ModelBase):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    project_id: str
+    version: int = 1
+    compatibility_version: str = "project_manifest.v1"
+    payload: ProjectManifestPayload
+
+
+class ProjectManifest(ProjectManifestDraft):
+    compiled_at: datetime = Field(default_factory=utc_now)
+
+
 class PendingQuestion(ModelBase):
     id: str = Field(default_factory=lambda: str(uuid4()))
     prompt: str
@@ -256,6 +349,7 @@ class WorldMatrixDraft(WorldMatrixPayload):
 
 class ProjectBootstrapResponse(ModelBase):
     project: Project
+    manifest_draft: ProjectManifestDraft
     setup_session: SetupSession
     draft: WorldMatrixDraft
 

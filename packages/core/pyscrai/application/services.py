@@ -12,6 +12,9 @@ from pyscrai.contracts.models import (
     ProjectBootstrapRequest,
     ProjectBootstrapResponse,
     ProjectCreateRequest,
+    ProjectManifestDraft,
+    ProjectManifestPayload,
+    ManifestProjectConfig,
     ProvenanceRecord,
     Scenario,
     ScenarioCreateRequest,
@@ -101,6 +104,20 @@ class ProjectService:
             domain_type=request.domain_type,
             status=ProjectStatus.ACTIVE,
         )
+
+        manifest_draft = ProjectManifestDraft(
+            project_id=project.id,
+            payload=ProjectManifestPayload(
+                project=ManifestProjectConfig(
+                    id=project.id,
+                    name=project.name,
+                    description=project.description,
+                    created_by=request.operator,
+                    domain_type=project.domain_type,
+                )
+            ),
+        )
+
         draft = WorldMatrixDraft(
             project_id=project.id,
             metadata=MetadataProfile(
@@ -124,6 +141,7 @@ class ProjectService:
         draft.unresolved_items = self.compute_unresolved_items(draft)
         draft.validation_state = self.validation_state_for(draft.validation)
         self.repository.save_project(project)
+        self.repository.save_manifest_draft(manifest_draft)
         self.repository.save_draft(draft)
         return project
 
@@ -164,8 +182,12 @@ class ProjectService:
             session.id, SetupMessageRequest(role="operator", content=request.prompt)
         )
         draft = self.get_worldmatrix_draft(project.id)
+        manifest_draft = self.repository.load_manifest_draft(project.id)
         return ProjectBootstrapResponse(
-            project=project, setup_session=session, draft=draft
+            project=project,
+            manifest_draft=manifest_draft,
+            setup_session=session,
+            draft=draft,
         )
 
     def create_setup_session(
