@@ -2,19 +2,24 @@ from __future__ import annotations
 
 import re
 
+from pyscrai.application.architect_manifest import ArchitectManifestService
 from pyscrai.application.setup_mapper import SetupInterviewMapper
 from pyscrai.contracts.models import (
+    ArchitectManifestDraftResponse,
     CompileMetadata,
     DomainProfile,
-    ManifestMetadata,
     MetadataProfile,
+    ModuleRegistryEntry,
     PendingQuestion,
     Project,
     ProjectBootstrapRequest,
     ProjectBootstrapResponse,
     ProjectCreateRequest,
+    ProjectManifest,
+    ProjectManifestApprovalRequest,
+    ProjectManifestApprovalResponse,
     ProjectManifestDraft,
-    ProjectManifestPayload,
+    ProjectManifestDraftUpdateRequest,
     ProvenanceRecord,
     Scenario,
     ScenarioCreateRequest,
@@ -31,6 +36,7 @@ from pyscrai.contracts.models import (
     WorldMatrix,
     WorldMatrixDraft,
     WorldMatrixPayload,
+    utc_now,
 )
 from pyscrai.domain.enums import (
     DomainType,
@@ -94,32 +100,31 @@ class ProjectService:
 
     def __init__(self, repository: ArtifactRepository | None = None) -> None:
         self.repository = repository or ArtifactRepository()
+        self.architect_manifest_service = ArchitectManifestService()
         self.mapper = SetupInterviewMapper()
         self.runtime_engine = ScenarioRuntimeEngine()
 
     def create_project(self, request: ProjectCreateRequest) -> Project:
+        project, _ = self._initialize_project(request)
+        return project
+
+    def _initialize_project(
+        self, request: ProjectCreateRequest
+    ) -> tuple[Project, ArchitectManifestDraftResponse]:
         project = Project(
             name=request.name,
             description=request.description,
             domain_type=request.domain_type,
-            status=ProjectStatus.ACTIVE,
+            status=ProjectStatus.DRAFT,
+        )
+        architect_manifest = self.architect_manifest_service.draft_manifest(
+            project=project,
+            goal=request.description,
+            operator=request.operator,
         )
 
-        manifest_draft = ProjectManifestDraft(
-            project_id=project.id,
-            payload=ProjectManifestPayload(
-                metadata=ManifestMetadata(
-                    project_id=project.id,
-                    name=project.name,
-                    description=project.description,
-                    created_by=request.operator,
-                    domain_type=project.domain_type,
-                    created_at=project.created_at,
-                    updated_at=project.updated_at,
-                )
-            ),
-        )
-
+        self.repository.save_project(project)
+        self.repository.save_manifest_draft(architect_manifest.manifest_draft)
         draft = WorldMatrixDraft(
             project_id=project.id,
             metadata=MetadataProfile(
@@ -142,10 +147,8 @@ class ProjectService:
         draft.validation = self.validate_draft_model(draft)
         draft.unresolved_items = self.compute_unresolved_items(draft)
         draft.validation_state = self.validation_state_for(draft.validation)
-        self.repository.save_project(project)
-        self.repository.save_manifest_draft(manifest_draft)
         self.repository.save_draft(draft)
-        return project
+        return project, architect_manifest
 
     def list_projects(self) -> list[Project]:
         return self.repository.list_projects()
@@ -156,6 +159,60 @@ class ProjectService:
     def get_manifest_draft(self, project_id: str) -> ProjectManifestDraft:
         return self.repository.load_manifest_draft(project_id)
 
+    def list_manifest_modules(self) -> list[ModuleRegistryEntry]:
+        return self.architect_manifest_service.module_registry()
+
+    def update_manifest_draft(
+        self, project_id: str, request: ProjectManifestDraftUpdateRequest
+    ) -> ProjectManifestDraft:
+        project = self.repository.load_project(project_id)
+        existing = self.repository.load_manifest_draft(project_id)
+        project.name = request.payload.metadata.name
+        project.description = request.payload.metadata.description
+        project.updated_at = utc_now()
+        self.repository.save_project(project)
+
+        payload = request.payload.model_copy(deep=True)
+        payload = self.architect_manifest_service.rebuild_payload(
+            project=project,
+            operator=existing.payload.metadata.created_by,
+            payload=payload,
+        )
+        draft = ProjectManifestDraft(
+            id=existing.id,
+            project_id=project.id,
+            version=existing.version + 1,
+            compatibility_version=existing.compatibility_version,
+            payload=payload,
+        )
+        self.repository.save_manifest_draft(draft)
+        return draft
+
+    def approve_manifest_draft(
+        self, project_id: str, request: ProjectManifestApprovalRequest | None = None
+    ) -> ProjectManifestApprovalResponse:
+        project = self.repository.load_project(project_id)
+        manifest_draft = self.repository.load_manifest_draft(project_id)
+        manifest = ProjectManifest(
+            **manifest_draft.model_dump(),
+            approved_by=request.operator if request is not None else None,
+        )
+        self.repository.save_manifest(manifest)
+        project = self.repository.update_project_status(project_id, ProjectStatus.ACTIVE)
+        session = self.create_setup_session(project_id)
+        if project.description.strip():
+            session = self.add_setup_message(
+                session.id,
+                SetupMessageRequest(role="operator", content=project.description),
+            )
+        draft = self.get_worldmatrix_draft(project_id)
+        return ProjectManifestApprovalResponse(
+            project=project,
+            manifest=manifest,
+            setup_session=session,
+            draft=draft,
+        )
+
     def bootstrap_project(
         self, request: ProjectBootstrapRequest
     ) -> ProjectBootstrapResponse:
@@ -163,7 +220,7 @@ class ProjectService:
         project_name = request.name or self.project_name_from_prompt(
             request.prompt, domain_type
         )
-        project = self.create_project(
+        project, architect_manifest = self._initialize_project(
             ProjectCreateRequest(
                 name=project_name,
                 description=request.prompt,
@@ -182,22 +239,18 @@ class ProjectService:
                 )
             )
             self.repository.save_draft(draft)
-        session = self.create_setup_session(project.id)
-        session = self.add_setup_message(
-            session.id, SetupMessageRequest(role="operator", content=request.prompt)
-        )
-        draft = self.get_worldmatrix_draft(project.id)
-        manifest_draft = self.repository.load_manifest_draft(project.id)
         return ProjectBootstrapResponse(
             project=project,
-            manifest_draft=manifest_draft,
-            setup_session=session,
-            draft=draft,
+            architect_manifest=architect_manifest,
         )
 
     def create_setup_session(
         self, project_id: str, request: SetupSessionCreateRequest | None = None
     ) -> SetupSession:
+        if not self.repository.has_manifest(project_id):
+            raise ValueError(
+                "Project Manifest approval is required before setup can begin."
+            )
         draft = self.repository.load_draft(project_id)
         session_phase = request.phase if request is not None else self.phase_for(draft)
         session = SetupSession(

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-03-17 I
+
+- Added an architect manifest-drafting application boundary backed by an OpenAI Agents SDK adapter for OpenAI-compatible endpoints, with deterministic heuristic fallback.
+- Added a static internal module registry for the current MVP modules and now derive registry-driven manifest sections such as enabled modules, memory, and runtime profile from it.
+- Changed Forge goal intake to stop at a `ProjectManifestDraft`, added manifest update/approval endpoints, and gated setup-session launch on explicit manifest approval.
+- Updated the Streamlit Forge shell to expose manifest review/edit plus approval-driven handoff into the existing WorldMatrix setup flow.
+- Added deterministic manifest-drafting coverage and updated API tests for the new approval-first contract.
+
 ## 2026-03-16 III
 
 - Formalized the Move 2 `ProjectManifestDraft` contract around the Forge blueprint sections: `metadata`, `enabled_modules`, `providers`, `routing_policy`, `storage`, `vectors`, `graph`, `mcp_servers`, `memory`, `runtime_profile`, and `policies`.

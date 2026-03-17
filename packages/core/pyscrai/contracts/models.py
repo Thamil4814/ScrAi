@@ -323,16 +323,33 @@ class ManifestPolicies(ModelBase):
     allow_auto_scaffold: bool = False
 
 
+class ModuleConfigContract(ModelBase):
+    manifest_sections: list[str] = Field(default_factory=list)
+    required_provider_roles: list[Literal["chat", "reasoning", "embedding"]] = Field(
+        default_factory=list
+    )
+    enables_session_memory: bool = False
+    enables_long_term_memory: bool = False
+    enables_retrieval: bool = False
+    enables_vectors: bool = False
+    enables_graph: bool = False
+    runtime_modes: list[str] = Field(default_factory=list)
+
+
+class ModuleRegistryEntry(ModelBase):
+    id: str
+    name: str
+    purpose: str
+    dependencies: list[str] = Field(default_factory=list)
+    config_contract: ModuleConfigContract = Field(default_factory=ModuleConfigContract)
+    lifecycle_hooks: list[str] = Field(default_factory=list)
+    ui_surfaces: list[str] = Field(default_factory=list)
+    artifact_contracts: list[str] = Field(default_factory=list)
+
+
 class ProjectManifestPayload(ModelBase):
     metadata: ManifestMetadata
-    enabled_modules: list[str] = Field(
-        default_factory=lambda: [
-            "setup_session",
-            "worldmatrix_authoring",
-            "validation",
-            "scenario_runtime",
-        ]
-    )
+    enabled_modules: list[str] = Field(default_factory=list)
     providers: ManifestProviders = Field(default_factory=ManifestProviders)
     routing_policy: ManifestRoutingPolicy = Field(default_factory=ManifestRoutingPolicy)
     storage: ManifestStorage = Field(default_factory=ManifestStorage)
@@ -355,7 +372,49 @@ class ProjectManifestDraft(ModelBase):
 
 
 class ProjectManifest(ProjectManifestDraft):
-    compiled_at: datetime = Field(default_factory=utc_now)
+    approved_at: datetime = Field(default_factory=utc_now)
+    approved_by: str | None = None
+
+
+class ArchitectManifestDraftRequest(ModelBase):
+    project_id: str
+    project_name: str
+    goal: str
+    domain_type: DomainType
+    operator: str | None = None
+
+
+class ArchitectModuleSelection(ModelBase):
+    module_id: str
+    rationale: str
+
+
+class ArchitectManifestRecommendation(ModelBase):
+    goal_summary: str
+    module_selections: list[ArchitectModuleSelection] = Field(default_factory=list)
+    provider_bus: str = "litellm"
+    chat_provider_id: str = "lmstudio"
+    reasoning_provider_id: str = "openrouter"
+    embedding_provider_id: str = "lmstudio"
+    default_route: Literal["local", "remote"] = "local"
+    allow_remote_reasoning: bool = True
+    allow_remote_ingestion_assist: bool = True
+    artifact_backend: str = "local_fs"
+    relational_backend: str = "sqlite"
+    operator_approval_required: bool = True
+    allow_auto_scaffold: bool = False
+    notes: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    draft_source: Literal["openai_agents_sdk", "heuristic_fallback"] = (
+        "heuristic_fallback"
+    )
+
+
+class ArchitectManifestDraftResponse(ModelBase):
+    manifest_draft: ProjectManifestDraft
+    recommendation: ArchitectManifestRecommendation
+    available_modules: list[ModuleRegistryEntry] = Field(default_factory=list)
+    selected_modules: list[ModuleRegistryEntry] = Field(default_factory=list)
 
 
 class PendingQuestion(ModelBase):
@@ -392,7 +451,20 @@ class WorldMatrixDraft(WorldMatrixPayload):
 
 class ProjectBootstrapResponse(ModelBase):
     project: Project
-    manifest_draft: ProjectManifestDraft
+    architect_manifest: ArchitectManifestDraftResponse
+
+
+class ProjectManifestDraftUpdateRequest(ModelBase):
+    payload: ProjectManifestPayload
+
+
+class ProjectManifestApprovalRequest(ModelBase):
+    operator: str | None = None
+
+
+class ProjectManifestApprovalResponse(ModelBase):
+    project: Project
+    manifest: ProjectManifest
     setup_session: SetupSession
     draft: WorldMatrixDraft
 

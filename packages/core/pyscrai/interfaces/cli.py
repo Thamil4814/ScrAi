@@ -8,6 +8,8 @@ from pyscrai.application.services import ProjectService
 from pyscrai.contracts.models import (
     ProjectBootstrapRequest,
     ProjectCreateRequest,
+    ProjectManifestApprovalRequest,
+    ProjectManifestDraftUpdateRequest,
     ScenarioCreateRequest,
     SetupMessageRequest,
     SetupSession,
@@ -73,6 +75,32 @@ def show_project(project_id: str) -> None:
 def show_manifest(project_id: str) -> None:
     manifest = service.get_manifest_draft(project_id)
     _emit(manifest.model_dump(mode="json"))
+
+
+@app.command("list-modules")
+def list_modules() -> None:
+    modules = service.list_manifest_modules()
+    _emit([module.model_dump(mode="json") for module in modules])
+
+
+@app.command("approve-manifest")
+def approve_manifest(
+    project_id: str,
+    operator: str | None = typer.Option(default=None, help="Optional operator label."),
+) -> None:
+    response = service.approve_manifest_draft(
+        project_id, ProjectManifestApprovalRequest(operator=operator)
+    )
+    _emit(response.model_dump(mode="json"))
+
+
+@app.command("update-manifest")
+def update_manifest(project_id: str, payload_json: str) -> None:
+    draft = service.update_manifest_draft(
+        project_id,
+        ProjectManifestDraftUpdateRequest.model_validate_json(payload_json),
+    )
+    _emit(draft.model_dump(mode="json"))
 
 
 @app.command("bootstrap-project")

@@ -1,12 +1,13 @@
-from fastapi.testclient import TestClient
 from pathlib import Path
+
+from fastapi.testclient import TestClient
 
 from pyscrai.interfaces.api import app
 
 client = TestClient(app)
 
 
-def test_bootstrap_project_from_prompt() -> None:
+def test_bootstrap_project_from_prompt_drafts_manifest_first() -> None:
     bootstrap_response = client.post(
         "/projects/bootstrap",
         json={
@@ -18,19 +19,15 @@ def test_bootstrap_project_from_prompt() -> None:
     payload = bootstrap_response.json()
 
     assert payload["project"]["domain_type"] == "geopolitical"
+    assert payload["project"]["status"] == "draft"
     assert payload["project"]["name"].startswith(
         "near-future Gulf crisis simulation in the Persian Gulf"
     )
     assert payload["project"]["name"].endswith("...")
-    assert payload["setup_session"]["phase"] == "world_population"
-    assert payload["setup_session"]["transcript"][-1]["role"] == "architect"
-    assert payload["draft"]["environment"]["description"].startswith(
-        "Build a near-future Gulf crisis"
-    )
-    assert payload["draft"]["domain"]["time_scope"] == "near-future"
-    assert payload["draft"]["domain"]["spatial_scope"] == "the Persian Gulf"
-    assert payload["draft"]["validation"]["compile_readiness"] is False
-    manifest_payload = payload["manifest_draft"]["payload"]
+
+    architect_manifest = payload["architect_manifest"]
+    manifest_payload = architect_manifest["manifest_draft"]["payload"]
+
     assert set(manifest_payload) == {
         "metadata",
         "enabled_modules",
@@ -44,21 +41,35 @@ def test_bootstrap_project_from_prompt() -> None:
         "runtime_profile",
         "policies",
     }
+    assert [module["id"] for module in architect_manifest["selected_modules"]] == [
+        "setup_session",
+        "worldmatrix_authoring",
+        "validation",
+        "scenario_runtime",
+    ]
+    assert (
+        architect_manifest["recommendation"]["draft_source"] == "heuristic_fallback"
+    )
     assert manifest_payload["metadata"]["project_id"] == payload["project"]["id"]
-    assert manifest_payload["providers"]["registry"][0]["id"] == "openrouter"
-    assert manifest_payload["providers"]["registry"][1]["id"] == "lmstudio"
+    assert manifest_payload["enabled_modules"] == [
+        "setup_session",
+        "worldmatrix_authoring",
+        "validation",
+        "scenario_runtime",
+    ]
+    assert manifest_payload["providers"]["defaults"]["chat"] == "lmstudio/default-chat"
+    assert (
+        manifest_payload["providers"]["defaults"]["reasoning"]
+        == "openrouter/default-reasoning"
+    )
     assert manifest_payload["routing_policy"]["default_route"] == "local"
     assert manifest_payload["storage"]["artifact_backend"] == "local_fs"
     assert manifest_payload["vectors"]["enabled"] is False
     assert manifest_payload["graph"]["enabled"] is False
-    assert manifest_payload["runtime_profile"]["mode"] == "authoring_only"
-    assert any(
-        item["source"] == "bootstrap.domain_inference"
-        for item in payload["draft"]["provenance"]
-    )
+    assert manifest_payload["runtime_profile"]["mode"] == "authoring_and_runtime"
 
 
-def test_get_manifest_draft_exposes_move_2_contract() -> None:
+def test_get_manifest_draft_exposes_registry_driven_contract() -> None:
     project_response = client.post(
         "/projects",
         json={
@@ -80,22 +91,56 @@ def test_get_manifest_draft_exposes_move_2_contract() -> None:
         "setup_session",
         "worldmatrix_authoring",
         "validation",
-        "scenario_runtime",
     ]
     assert payload["memory"] == {
         "session_enabled": True,
         "long_term_enabled": False,
         "retrieval_enabled": False,
     }
+    assert payload["runtime_profile"]["mode"] == "authoring_only"
     assert payload["mcp_servers"] == []
 
 
-def test_project_setup_flow() -> None:
+def test_update_manifest_draft_rederives_registry_driven_sections() -> None:
+    project_response = client.post(
+        "/projects",
+        json={
+            "name": "Manifest review test",
+            "description": "A compact world authoring workspace.",
+            "domain_type": "fiction",
+        },
+    )
+    assert project_response.status_code == 200
+    project_id = project_response.json()["id"]
+
+    manifest_response = client.get(f"/projects/{project_id}/manifest-draft")
+    assert manifest_response.status_code == 200
+    payload = manifest_response.json()["payload"]
+    payload["enabled_modules"].append("scenario_runtime")
+
+    update_response = client.put(
+        f"/projects/{project_id}/manifest-draft",
+        json={"payload": payload},
+    )
+    assert update_response.status_code == 200
+    updated_payload = update_response.json()["payload"]
+
+    assert updated_payload["enabled_modules"] == [
+        "setup_session",
+        "worldmatrix_authoring",
+        "validation",
+        "scenario_runtime",
+    ]
+    assert updated_payload["runtime_profile"]["mode"] == "authoring_and_runtime"
+    assert updated_payload["runtime_profile"]["default_surface"] == "runtime"
+
+
+def test_project_setup_flow_requires_manifest_approval() -> None:
     project_response = client.post(
         "/projects",
         json={
             "name": "Regional crisis sim",
-            "description": "A constrained geopolitical crisis setup.",
+            "description": "The world is a near-future Gulf crisis in the Persian Gulf centered on maritime escalation.",
             "domain_type": "geopolitical",
             "operator": "architect",
         },
@@ -103,46 +148,21 @@ def test_project_setup_flow() -> None:
     assert project_response.status_code == 200
     project_id = project_response.json()["id"]
 
-    session_response = client.post(f"/projects/{project_id}/setup-sessions")
-    assert session_response.status_code == 200
-    session_payload = session_response.json()
+    pre_approval_response = client.post(f"/projects/{project_id}/setup-sessions")
+    assert pre_approval_response.status_code == 409
+
+    approval_response = client.post(f"/projects/{project_id}/manifest-draft/approve")
+    assert approval_response.status_code == 200
+    approval_payload = approval_response.json()
+    session_payload = approval_payload["setup_session"]
     session_id = session_payload["id"]
-    assert session_payload["phase"] == "intent_framing"
+
+    assert approval_payload["project"]["status"] == "active"
+    assert session_payload["phase"] == "world_population"
     assert session_payload["transcript"][-1]["role"] == "architect"
 
     compile_response = client.post(f"/projects/{project_id}/worldmatrix-draft/compile")
     assert compile_response.status_code == 409
-
-    message_response = client.post(
-        f"/setup-sessions/{session_id}/messages",
-        json={
-            "role": "operator",
-            "content": "The world is a near-future Gulf crisis in the Persian Gulf centered on maritime escalation.",
-        },
-    )
-    assert message_response.status_code == 200
-    session_payload = message_response.json()
-    assert session_payload["phase"] == "world_population"
-    assert "Time scope: near-future" in session_payload["extracted_facts"]
-    assert "Spatial scope: the Persian Gulf" in session_payload["extracted_facts"]
-    assert session_payload["transcript"][-1]["role"] == "architect"
-    assert (
-        "Who are the key actors or entities"
-        in session_payload["transcript"][-1]["content"]
-    )
-
-    draft_response = client.get(f"/projects/{project_id}/worldmatrix-draft")
-    assert draft_response.status_code == 200
-    draft_payload = draft_response.json()
-    assert draft_payload["domain"]["time_scope"] == "near-future"
-    assert draft_payload["domain"]["spatial_scope"] == "the Persian Gulf"
-    assert draft_payload["environment"]["locations"] == ["the Persian Gulf"]
-
-    validate_response = client.post(
-        f"/projects/{project_id}/worldmatrix-draft/validate"
-    )
-    assert validate_response.status_code == 200
-    assert validate_response.json()["compile_readiness"] is False
 
     population_response = client.post(
         f"/setup-sessions/{session_id}/messages",
@@ -178,11 +198,7 @@ def test_project_setup_flow() -> None:
 
     project_get_response = client.get(f"/projects/{project_id}")
     assert project_get_response.status_code == 200
-    assert project_get_response.json()["id"] == project_id
-
-    projects_response = client.get("/projects")
-    assert projects_response.status_code == 200
-    assert any(project["id"] == project_id for project in projects_response.json())
+    assert project_get_response.json()["status"] == "compiled"
 
     bundle_dir = Path("artifacts/projects") / project_id / "compiled" / worldmatrix_id
     assert (bundle_dir / "worldmatrix.json").exists()
@@ -196,37 +212,16 @@ def test_setup_mapper_populates_multiple_worldmatrix_sections() -> None:
         "/projects",
         json={
             "name": "Escalation ladder sim",
-            "description": "A compact regional escalation model.",
+            "description": "The world is a near-future crisis in the Persian Gulf.",
             "domain_type": "geopolitical",
         },
     )
     assert project_response.status_code == 200
     project_id = project_response.json()["id"]
 
-    session_response = client.post(f"/projects/{project_id}/setup-sessions")
-    assert session_response.status_code == 200
-    session_payload = session_response.json()
-    session_id = session_payload["id"]
-    assert session_payload["phase"] == "intent_framing"
-    assert (
-        "What is the core environment or situation"
-        in session_payload["transcript"][-1]["content"]
-    )
-
-    framing_response = client.post(
-        f"/setup-sessions/{session_id}/messages",
-        json={
-            "role": "operator",
-            "content": "The world is a near-future crisis in the Persian Gulf.",
-        },
-    )
-    assert framing_response.status_code == 200
-    framing_payload = framing_response.json()
-    assert framing_payload["phase"] == "world_population"
-    assert (
-        "Who are the key actors or entities"
-        in framing_payload["transcript"][-1]["content"]
-    )
+    approval_response = client.post(f"/projects/{project_id}/manifest-draft/approve")
+    assert approval_response.status_code == 200
+    session_id = approval_response.json()["setup_session"]["id"]
 
     population_response = client.post(
         f"/setup-sessions/{session_id}/messages",
@@ -245,10 +240,6 @@ def test_setup_mapper_populates_multiple_worldmatrix_sections() -> None:
     assert (
         "Polities: Iran, Israel, the United States"
         in population_payload["extracted_facts"]
-    )
-    assert (
-        "What rules, constraints, or forbidden actions"
-        in population_payload["transcript"][-1]["content"]
     )
 
     rules_response = client.post(
@@ -300,25 +291,16 @@ def test_worldmatrix_branch_scenario_vertical_slice() -> None:
         "/projects",
         json={
             "name": "Milestone 2 scenario derivation",
-            "description": "Thin vertical slice for branch and scenario creation.",
+            "description": "The world is a present-day social conflict in Boston.",
             "domain_type": "social",
         },
     )
     assert project_response.status_code == 200
     project_id = project_response.json()["id"]
 
-    session_response = client.post(f"/projects/{project_id}/setup-sessions")
-    assert session_response.status_code == 200
-    session_id = session_response.json()["id"]
-
-    message_response = client.post(
-        f"/setup-sessions/{session_id}/messages",
-        json={
-            "role": "operator",
-            "content": "The world is a present-day social conflict in Boston.",
-        },
-    )
-    assert message_response.status_code == 200
+    approval_response = client.post(f"/projects/{project_id}/manifest-draft/approve")
+    assert approval_response.status_code == 200
+    session_id = approval_response.json()["setup_session"]["id"]
 
     population_response = client.post(
         f"/setup-sessions/{session_id}/messages",

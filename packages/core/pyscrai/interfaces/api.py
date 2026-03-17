@@ -4,11 +4,15 @@ from fastapi import FastAPI, HTTPException
 
 from pyscrai.application.services import ProjectService
 from pyscrai.contracts.models import (
+    ModuleRegistryEntry,
     Project,
     ProjectBootstrapRequest,
     ProjectBootstrapResponse,
     ProjectCreateRequest,
+    ProjectManifestApprovalRequest,
+    ProjectManifestApprovalResponse,
     ProjectManifestDraft,
+    ProjectManifestDraftUpdateRequest,
     Scenario,
     ScenarioCreateRequest,
     SetupMessageRequest,
@@ -56,12 +60,44 @@ def bootstrap_project(request: ProjectBootstrapRequest) -> ProjectBootstrapRespo
     return service.bootstrap_project(request)
 
 
+@app.get("/modules/registry", response_model=list[ModuleRegistryEntry])
+def list_modules() -> list[ModuleRegistryEntry]:
+    return service.list_manifest_modules()
+
+
 @app.get("/projects/{project_id}/manifest-draft", response_model=ProjectManifestDraft)
 def get_manifest_draft(project_id: str) -> ProjectManifestDraft:
     try:
         return service.get_manifest_draft(project_id)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.put("/projects/{project_id}/manifest-draft", response_model=ProjectManifestDraft)
+def update_manifest_draft(
+    project_id: str, request: ProjectManifestDraftUpdateRequest
+) -> ProjectManifestDraft:
+    try:
+        return service.update_manifest_draft(project_id, request)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@app.post(
+    "/projects/{project_id}/manifest-draft/approve",
+    response_model=ProjectManifestApprovalResponse,
+)
+def approve_manifest_draft(
+    project_id: str, request: ProjectManifestApprovalRequest | None = None
+) -> ProjectManifestApprovalResponse:
+    try:
+        return service.approve_manifest_draft(project_id, request)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.post("/projects/{project_id}/setup-sessions", response_model=SetupSession)
@@ -72,6 +108,8 @@ def create_setup_session(
         return service.create_setup_session(project_id, request)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.post("/setup-sessions/{session_id}/messages", response_model=SetupSession)

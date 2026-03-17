@@ -16,6 +16,7 @@ from pyscrai.contracts.models import (
     WorldBranch,
     WorldMatrix,
     WorldMatrixDraft,
+    utc_now,
 )
 from pyscrai.domain.enums import ProjectStatus
 
@@ -49,6 +50,7 @@ class ArtifactRepository:
     def update_project_status(self, project_id: str, status: ProjectStatus) -> Project:
         project = self.load_project(project_id)
         project.status = status
+        project.updated_at = utc_now()
         self.save_project(project)
         return project
 
@@ -63,6 +65,9 @@ class ArtifactRepository:
 
     def load_manifest(self, project_id: str) -> ProjectManifest:
         return self._read_model(self.manifest_path(project_id), ProjectManifest)
+
+    def has_manifest(self, project_id: str) -> bool:
+        return self.manifest_path(project_id).exists()
 
     def save_draft(self, draft: WorldMatrixDraft) -> None:
         self._write_model(self.draft_path(draft.project_id), draft)
