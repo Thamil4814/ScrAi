@@ -207,3 +207,37 @@ The PyScrAI repository currently has a working vertical slice covering all 3 blu
 - `docs/devops/architect_roles.md` — Document architect role system
 - `docs/devops/runtime_guide.md` — Document runtime behavior
 - `docs/devops/validation_rules.md` — Document validation logic
+
+
+
+Initial repo read:
+
+The current codebase is a coherent MVP vertical slice, not a rough stub. The center of gravity is ProjectService, with a clean path from Project -> SetupSession -> Draft -> Compile -> Branch -> Scenario -> Run.
+
+The setup flow is now genuinely phase-driven. add_setup_message() routes operator input through SetupInterviewMapper, recomputes validation, advances phase, and appends an architect follow-up. That matches the stated WorldMatrix-first/HIL-first direction.
+
+The runtime is still intentionally a smoke-test engine, not a simulation engine. runtime/engine.py is deterministic action-cycling with tension math, useful for trace plumbing but not yet for real actor cognition, rule enforcement, or bounded knowledge.
+
+The docs and code are mostly aligned. The main gap is that current_status.md and pyproject.toml already anticipate LLM/agent infrastructure, but the actual repo still behaves as a deterministic local scaffold with file-backed persistence.
+
+The dependency surface is much larger than the implemented surface. FastAPI, Pydantic, Typer, and Uvicorn are actively used; a large portion of the OpenAI/Agents/Redis/MCP stack appears preloaded for future phases rather than integrated today.
+
+Tests pass as-is: 4 passed.
+
+Two notable direction flags:
+
+pyproject.toml pins requires-python = ">=3.12,<3.13", but the repo just passed tests in a Python 3.13 container. That should be made explicit one way or the other.
+
+The runtime/UI split you’ve been discussing is supported by the current shape. The repo already treats authoring and runtime as separable artifacts; the next step is formalizing that boundary rather than hand-waving it.
+
+Best discussion surfaces from here:
+
+authoring/workbench end-state,
+
+compiled WorldMatrix contract,
+
+simulator-runner boundary,
+
+real runtime semantics,
+
+LLM/agent integration strategy.

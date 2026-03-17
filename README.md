@@ -56,3 +56,8 @@ uv run pyscrai create-branch <worldmatrix_id> "Baseline branch"
 uv run pyscrai create-scenario <branch_id> --binding lead=admiral --state tension=high --stop-condition turn_limit=8
 uv run pyscrai run-scenario <scenario_id> --turn-limit 6
 ```
+“Behold, my names are without number, 
+I have set the rhythm within all of your music.
+ I have been in the words of many of your poets,
+ and I have dwelt in the work of every craftsman and artist.
+The wisest  among you have sought to uncover the secret of my part in this, but they could not; and their harvest came to nothing.”
