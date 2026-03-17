@@ -14,17 +14,14 @@ Architecture:
 - Abstracts Agent Zero details behind clean adapter pattern
 """
 
-import asyncio
 import json
 import logging
 from typing import Any, Dict, List, Optional, Protocol
 from dataclasses import dataclass, field
-from enum import Enum
 
 import httpx
 
-from pyscrai.contracts.models import Project, WorldMatrix, SetupSession
-from pyscrai.domain.enums import SessionPhase, ValidationState
+from pyscrai.contracts.models import WorldMatrix, SetupSession
 
 
 logger = logging.getLogger(__name__)
@@ -340,8 +337,7 @@ build knowledge graphs using a local-first pipeline."""
         if context:
             parts.append(f"Additional Context: {json.dumps(context)}")
 
-        return "
-".join(parts)
+        return "\n".join(parts)
 
     def _build_authoring_message(
         self,
@@ -360,8 +356,7 @@ build knowledge graphs using a local-first pipeline."""
         if context:
             parts.append(f"Additional Context: {json.dumps(context)}")
 
-        return "
-".join(parts)
+        return "\n".join(parts)
 
     def _build_runtime_message(
         self,
@@ -378,8 +373,7 @@ build knowledge graphs using a local-first pipeline."""
         if context:
             parts.append(f"Additional Context: {json.dumps(context)}")
 
-        return "
-".join(parts)
+        return "\n".join(parts)
 
     def _build_ingestion_message(
         self,
@@ -396,8 +390,7 @@ build knowledge graphs using a local-first pipeline."""
         if context:
             parts.append(f"Additional Context: {json.dumps(context)}")
 
-        return "
-".join(parts)
+        return "\n".join(parts)
 
     async def close(self):
         """Clean up resources."""
