@@ -49,7 +49,7 @@ Responsibilities:
 
 Initial implementation:
 
-* OpenAI Agents SDK
+* Agent Zero
 
 ### Layer C — Provider Bus
 

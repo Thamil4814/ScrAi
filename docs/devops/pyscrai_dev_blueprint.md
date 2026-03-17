@@ -27,7 +27,7 @@ Rationale:
 
 ### Agent substrate
 
-* **Initial orchestration framework:** OpenAI Agents SDK
+* **Initial orchestration framework:** Agent Zero
 
 Rationale:
 
@@ -202,7 +202,7 @@ Near-term, this does not need to be a polished native PyScrAI subsystem. It can 
 The recommended bootstrap stack is:
 
 * **Forge shell:** Streamlit
-* **Agent orchestration substrate:** OpenAI Agents SDK
+* **Agent orchestration substrate:** Agent Zero
 * **Provider bus:** LiteLLM
 * **Providers:** OpenRouter + LM Studio
 * **Temporary internal lab surface:** Open WebUI
@@ -277,7 +277,7 @@ Avoid a fully dynamic plugin loader in the first pass.
 
 ### Move 4 — implement the architect agent in Forge
 
-Use the OpenAI Agents SDK for the initial interview/orchestration layer.
+Use the Agent Zero for the initial interview/orchestration layer.
 
 Its first duties:
 

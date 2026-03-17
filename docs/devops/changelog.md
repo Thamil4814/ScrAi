@@ -1,3 +1,37 @@
+
+## [2026-03-17] - Agent Zero Integration (Phase 1: Foundation)
+
+### Changed
+- **BREAKING**: Replaced OpenAI Agents SDK with Agent Zero as Layer B (Agent Substrate)
+- Updated `pyscrai_dev_architecture.md` to reflect Agent Zero integration
+- Updated `pyscrai_dev_blueprint.md` with new agent substrate decision
+- Updated `.a0proj/knowledge/` files for consistency
+
+### Added
+- New `packages/core/pyscrai/agents/` module with Agent Zero bridge
+- `agent_zero_bridge.py` - Clean A2A protocol adapter for Agent Zero communication
+- Comprehensive `AGENTS.md` documentation for Agent Zero integration patterns
+- Subordinate profile definitions for PyScrAI workflows:
+  - `pyscrai-architect`: Project setup, goal intake, manifest creation
+  - `pyscrai-author`: Entity creation, relationship mapping, rule definition
+  - `pyscrai-runtime`: Scenario execution, event logging, state management
+  - `pyscrai-ingest`: Document processing, entity extraction, knowledge graph building
+
+### Technical Details
+- **A2A Protocol**: HTTP-based communication with Agent Zero
+- **Subordinate System**: Internal agent delegation within Agent Zero hierarchy
+- **Clean Adapter Pattern**: Bridge module abstracts Agent Zero details
+- **No Breaking Changes**: All existing PyScrAI contracts and domain models preserved
+
+### Migration Notes
+- Existing PyScrAI functionality continues to work unchanged
+- Agent Zero provides enhanced capabilities:
+  - Hierarchical multi-agent orchestration
+  - Built-in vector-backed memory
+  - Rich tool ecosystem
+  - Task scheduler for automated scenarios
+  - Skills system maps to PyScrAI Module Registry
+
 # Changelog
 
 ## 2026-03-17 I

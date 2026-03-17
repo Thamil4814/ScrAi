@@ -63,3 +63,5 @@ Thumbs.db
 
 # Misc
 *.log
+# Agent Zero project folder
+.a0proj/
