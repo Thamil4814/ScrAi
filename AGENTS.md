@@ -32,19 +32,6 @@ The MVP path to reinforce is:
 
 `Project -> SetupSession -> WorldMatrixDraft -> Validation -> WorldMatrix -> WorldBranch/Scenario -> Runtime -> Test Run`
 
-## Current Repo Reality
-
-Do not assume the repo is empty. The current workspace already includes:
-
-- a Python 3.12 package under `packages/core/pyscrai/`,
-- FastAPI and Typer entrypoints,
-- Pydantic contracts for core MVP artifacts,
-- file-backed artifact persistence under `artifacts/projects/`,
-- a thin runtime loop,
-- tests under `tests/`.
-
-Prefer extending the current vertical slice over inventing a parallel structure.
-
 ## Environment And Tooling
 
 - Primary environment: WSL2 Ubuntu
@@ -84,32 +71,11 @@ Preserve these boundaries unless the blueprint changes:
 5. **Truth / belief / authority separation**: do not collapse world truth, actor belief, polity knowledge, operator visibility, operator permissions, and simulation authority into one layer.
 6. **Linux-first implementation**: avoid Windows-native assumptions in commands, paths, and setup guidance.
 
-## Preferred Build Priorities
-
-When choosing what to build next, follow this order:
-
-1. strengthen the end-to-end MVP path already in the repo,
-2. improve core contracts and persistence,
-3. improve setup-session and WorldMatrix drafting,
-4. improve validation and compile flow,
-5. improve scenario derivation and runtime behavior,
-6. add supporting UI only after contracts and flows are stable.
-
+s
 Avoid broad speculative subsystems before they directly strengthen the MVP path.
 
 ## Working Rules
-
-When implementing changes:
-
-- map the request back to the blueprint before adding code,
-- prefer the smallest coherent change that advances the MVP,
-- keep contracts explicit,
-- prefer deterministic behavior over hidden magic,
-- preserve extensibility for later agent-role separation,
-
-
-Avoid:
-
+Avoid:s
 - building a large scraping framework before setup flow maturity,
 - overcomplicating the first runtime,
 - mixing runtime concerns too early into setup-session contracts,

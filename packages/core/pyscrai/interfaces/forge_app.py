@@ -16,7 +16,7 @@ def init_service() -> ProjectService:
 def main() -> None:
     # Use streamlit run as the actual execution context
     import subprocess
-    
+
     script_path = os.path.abspath(__file__)
     subprocess.run([sys.executable, "-m", "streamlit", "run", script_path])
 
@@ -39,12 +39,16 @@ if __name__ == "__main__":
                 placeholder="Build a near-future Gulf crisis simulation in the Persian Gulf.",
             )
             submitted = st.form_submit_button("Scaffold Project")
-            
+
         if submitted and prompt:
             with st.spinner("Scaffolding Project and Manifest..."):
-                response = service.bootstrap_project(ProjectBootstrapRequest(prompt=prompt))
+                response = service.bootstrap_project(
+                    ProjectBootstrapRequest(prompt=prompt)
+                )
                 st.session_state.active_project_id = response.project.id
-                st.success(f"Project '{response.project.name}' scaffolded successfully.")
+                st.success(
+                    f"Project '{response.project.name}' scaffolded successfully."
+                )
 
     elif action == "Open Project":
         projects = service.list_projects()
@@ -55,7 +59,7 @@ if __name__ == "__main__":
             selected_id = st.selectbox(
                 "Select a Project",
                 options=list(project_options.keys()),
-                format_func=lambda x: project_options[x]
+                format_func=lambda x: project_options[x],
             )
             if st.button("Load"):
                 st.session_state.active_project_id = selected_id
@@ -65,30 +69,44 @@ if __name__ == "__main__":
         st.divider()
         project_id = st.session_state.active_project_id
         project = service.get_project(project_id)
-        draft = service.repository.load_manifest_draft(project_id)
-        
+        draft = service.get_manifest_draft(project_id)
+
         st.header(f"Active Stack Summary: {project.name}")
-        
+
         col1, col2 = st.columns(2)
         with col1:
-            st.subheader("Configuration")
-            st.json(draft.payload.forge.model_dump())
-            
-            st.subheader("Modules")
-            st.json(draft.payload.modules.model_dump())
-            
+            st.subheader("Metadata")
+            st.json(draft.payload.metadata.model_dump())
+
+            st.subheader("Enabled Modules")
+            st.json(draft.payload.enabled_modules)
+
             st.subheader("Providers")
             st.json(draft.payload.providers.model_dump())
-            
+
         with col2:
             st.subheader("Storage")
             st.json(draft.payload.storage.model_dump())
-            
-            st.subheader("Runtime Policies")
+
+            st.subheader("Runtime Profile")
+            st.json(draft.payload.runtime_profile.model_dump())
+
+            st.subheader("Policies")
             st.json(draft.payload.policies.model_dump())
-            
+
             st.subheader("Routing Policy")
             st.json(draft.payload.routing_policy.model_dump())
+
+        deferred_col1, deferred_col2, deferred_col3 = st.columns(3)
+        with deferred_col1:
+            st.subheader("Vectors")
+            st.json(draft.payload.vectors.model_dump())
+        with deferred_col2:
+            st.subheader("Graph")
+            st.json(draft.payload.graph.model_dump())
+        with deferred_col3:
+            st.subheader("MCP Servers")
+            st.json([server.model_dump() for server in draft.payload.mcp_servers])
 
         # Launch surfaces
         st.divider()

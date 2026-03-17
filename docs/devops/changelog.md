@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-03-16 III
+
+- Formalized the Move 2 `ProjectManifestDraft` contract around the Forge blueprint sections: `metadata`, `enabled_modules`, `providers`, `routing_policy`, `storage`, `vectors`, `graph`, `mcp_servers`, `memory`, `runtime_profile`, and `policies`.
+- Reworked manifest bootstrap defaults to reflect the current vertical slice and added explicit provider registry entries for OpenRouter and LM Studio.
+- Added manifest draft access through the FastAPI and Typer interfaces and updated the Streamlit Forge shell to render the new manifest sections.
+- Locked the manifest shape with API tests and validated the touched files with Ruff plus `pytest`.
+
+## 2026-03-16 II
+
+- Scaffolded PyScrAI Forge Streamlit app as the "Move 1" operator shell.
+- Added `streamlit` dependency and `pyscrai-forge` CLI entrypoint.
+- Implemented project selection, goal intake, active stack summary, and launchpad placeholders in `forge_app.py`.
+- Validated with pyright, ruff, and successful Streamlit session on port 8501.
+
 ## 2026-03-16 I
 
 - Deprecated `pyscrai_blueprint.md`, `vision.md`, and `current_status.md` by moving them to `.dep/`.

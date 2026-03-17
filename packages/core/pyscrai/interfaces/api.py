@@ -8,6 +8,7 @@ from pyscrai.contracts.models import (
     ProjectBootstrapRequest,
     ProjectBootstrapResponse,
     ProjectCreateRequest,
+    ProjectManifestDraft,
     Scenario,
     ScenarioCreateRequest,
     SetupMessageRequest,
@@ -53,6 +54,14 @@ def get_project(project_id: str) -> Project:
 @app.post("/projects/bootstrap", response_model=ProjectBootstrapResponse)
 def bootstrap_project(request: ProjectBootstrapRequest) -> ProjectBootstrapResponse:
     return service.bootstrap_project(request)
+
+
+@app.get("/projects/{project_id}/manifest-draft", response_model=ProjectManifestDraft)
+def get_manifest_draft(project_id: str) -> ProjectManifestDraft:
+    try:
+        return service.get_manifest_draft(project_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.post("/projects/{project_id}/setup-sessions", response_model=SetupSession)

@@ -30,10 +30,64 @@ def test_bootstrap_project_from_prompt() -> None:
     assert payload["draft"]["domain"]["time_scope"] == "near-future"
     assert payload["draft"]["domain"]["spatial_scope"] == "the Persian Gulf"
     assert payload["draft"]["validation"]["compile_readiness"] is False
+    manifest_payload = payload["manifest_draft"]["payload"]
+    assert set(manifest_payload) == {
+        "metadata",
+        "enabled_modules",
+        "providers",
+        "routing_policy",
+        "storage",
+        "vectors",
+        "graph",
+        "mcp_servers",
+        "memory",
+        "runtime_profile",
+        "policies",
+    }
+    assert manifest_payload["metadata"]["project_id"] == payload["project"]["id"]
+    assert manifest_payload["providers"]["registry"][0]["id"] == "openrouter"
+    assert manifest_payload["providers"]["registry"][1]["id"] == "lmstudio"
+    assert manifest_payload["routing_policy"]["default_route"] == "local"
+    assert manifest_payload["storage"]["artifact_backend"] == "local_fs"
+    assert manifest_payload["vectors"]["enabled"] is False
+    assert manifest_payload["graph"]["enabled"] is False
+    assert manifest_payload["runtime_profile"]["mode"] == "authoring_only"
     assert any(
         item["source"] == "bootstrap.domain_inference"
         for item in payload["draft"]["provenance"]
     )
+
+
+def test_get_manifest_draft_exposes_move_2_contract() -> None:
+    project_response = client.post(
+        "/projects",
+        json={
+            "name": "Manifest contract test",
+            "description": "Verify Project Manifest sections.",
+            "domain_type": "fiction",
+            "operator": "architect",
+        },
+    )
+    assert project_response.status_code == 200
+    project_payload = project_response.json()
+
+    manifest_response = client.get(f"/projects/{project_payload['id']}/manifest-draft")
+    assert manifest_response.status_code == 200
+    payload = manifest_response.json()["payload"]
+
+    assert payload["metadata"]["name"] == "Manifest contract test"
+    assert payload["enabled_modules"] == [
+        "setup_session",
+        "worldmatrix_authoring",
+        "validation",
+        "scenario_runtime",
+    ]
+    assert payload["memory"] == {
+        "session_enabled": True,
+        "long_term_enabled": False,
+        "retrieval_enabled": False,
+    }
+    assert payload["mcp_servers"] == []
 
 
 def test_project_setup_flow() -> None:

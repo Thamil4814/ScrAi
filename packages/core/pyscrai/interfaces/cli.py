@@ -69,6 +69,12 @@ def show_project(project_id: str) -> None:
     _emit(project.model_dump(mode="json"))
 
 
+@app.command("show-manifest")
+def show_manifest(project_id: str) -> None:
+    manifest = service.get_manifest_draft(project_id)
+    _emit(manifest.model_dump(mode="json"))
+
+
 @app.command("bootstrap-project")
 def bootstrap_project(
     prompt: str,

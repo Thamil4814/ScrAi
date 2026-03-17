@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 from pyscrai.domain.enums import (
     DomainType,
-    ForgeMode,
     OperatorMode,
     ProjectStatus,
     ProvenanceKind,
@@ -223,66 +222,100 @@ class Project(ModelBase):
     status: ProjectStatus = ProjectStatus.DRAFT
 
 
-class ManifestProjectConfig(ModelBase):
-    id: str
+class ManifestMetadata(ModelBase):
+    project_id: str
     name: str
     description: str
     created_by: str | None = None
     domain_type: DomainType
-
-
-class ManifestForgeConfig(ModelBase):
-    mode: ForgeMode = ForgeMode.ASSIST
-    active_surface: str = "authoring"
-    notes: list[str] = Field(default_factory=list)
-
-
-class ManifestModules(ModelBase):
-    core: list[str] = Field(default_factory=lambda: ["authoring", "ingestion", "agent_substrate"])
-    enabled: list[str] = Field(default_factory=list)
-    disabled: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
 
 class ManifestProviderDefaults(ModelBase):
-    chat: str = "openrouter/<model>"
-    local_chat: str = "lmstudio/<model>"
-    reasoning: str = "openrouter/<model>"
-    embedding: str = "local/<model>"
+    chat: str = "lmstudio/default-chat"
+    reasoning: str = "openrouter/default-reasoning"
+    embedding: str = "lmstudio/default-embedding"
+
+
+class ManifestProviderRegistryEntry(ModelBase):
+    id: str
+    provider: str
+    transport: Literal["local", "remote"]
+    enabled: bool = True
+    base_url: str | None = None
+    models: list[str] = Field(default_factory=list)
 
 
 class ManifestProviders(ModelBase):
     provider_bus: str = "litellm"
+    registry: list[ManifestProviderRegistryEntry] = Field(
+        default_factory=lambda: [
+            ManifestProviderRegistryEntry(
+                id="openrouter",
+                provider="openrouter",
+                transport="remote",
+                models=["default-chat", "default-reasoning"],
+            ),
+            ManifestProviderRegistryEntry(
+                id="lmstudio",
+                provider="lmstudio",
+                transport="local",
+                base_url="http://127.0.0.1:1234",
+                models=["default-chat", "default-embedding"],
+            ),
+        ]
+    )
     defaults: ManifestProviderDefaults = Field(default_factory=ManifestProviderDefaults)
 
 
 class ManifestRoutingPolicy(ModelBase):
     local_first: bool = True
+    default_route: Literal["local", "remote"] = "local"
     allow_remote_reasoning: bool = True
     allow_remote_ingestion_assist: bool = True
+    fallback_order: list[str] = Field(
+        default_factory=lambda: ["lmstudio", "openrouter"]
+    )
 
 
 class ManifestStorage(ModelBase):
-    artifacts: str = "local_fs"
-    relational: str = "sqlite"
-    vector: str | None = None
-    graph: str | None = None
-    cache: str | None = None
+    artifact_backend: str = "local_fs"
+    artifact_root: str = "artifacts/projects"
+    relational_backend: str = "sqlite"
+    relational_dsn: str = "sqlite:///artifacts/projects/pyscrai.db"
+
+
+class ManifestVectors(ModelBase):
+    enabled: bool = False
+    backend: str | None = None
+    collection: str | None = None
+
+
+class ManifestGraph(ModelBase):
+    enabled: bool = False
+    backend: str | None = None
+    namespace: str | None = None
+
+
+class ManifestMCPServer(ModelBase):
+    id: str
+    transport: Literal["stdio", "http"]
+    enabled: bool = True
+    command: str | None = None
+    url: str | None = None
 
 
 class ManifestMemory(ModelBase):
-    session_memory: bool = True
-    long_term_memory: bool = False
-    rag_enabled: bool = False
+    session_enabled: bool = True
+    long_term_enabled: bool = False
+    retrieval_enabled: bool = False
 
 
-class ManifestTools(ModelBase):
-    mcp_servers: list[str] = Field(default_factory=list)
-    internal_tools: list[str] = Field(default_factory=list)
-
-
-class ManifestRuntime(ModelBase):
+class ManifestRuntimeProfile(ModelBase):
     mode: str = "authoring_only"
-    default_profile: str = "mvp"
+    default_surface: str = "world_authoring"
+    trace_enabled: bool = True
 
 
 class ManifestPolicies(ModelBase):
@@ -291,15 +324,25 @@ class ManifestPolicies(ModelBase):
 
 
 class ProjectManifestPayload(ModelBase):
-    project: ManifestProjectConfig
-    forge: ManifestForgeConfig = Field(default_factory=ManifestForgeConfig)
-    modules: ManifestModules = Field(default_factory=ManifestModules)
+    metadata: ManifestMetadata
+    enabled_modules: list[str] = Field(
+        default_factory=lambda: [
+            "setup_session",
+            "worldmatrix_authoring",
+            "validation",
+            "scenario_runtime",
+        ]
+    )
     providers: ManifestProviders = Field(default_factory=ManifestProviders)
     routing_policy: ManifestRoutingPolicy = Field(default_factory=ManifestRoutingPolicy)
     storage: ManifestStorage = Field(default_factory=ManifestStorage)
+    vectors: ManifestVectors = Field(default_factory=ManifestVectors)
+    graph: ManifestGraph = Field(default_factory=ManifestGraph)
+    mcp_servers: list[ManifestMCPServer] = Field(default_factory=list)
     memory: ManifestMemory = Field(default_factory=ManifestMemory)
-    tools: ManifestTools = Field(default_factory=ManifestTools)
-    runtime: ManifestRuntime = Field(default_factory=ManifestRuntime)
+    runtime_profile: ManifestRuntimeProfile = Field(
+        default_factory=ManifestRuntimeProfile
+    )
     policies: ManifestPolicies = Field(default_factory=ManifestPolicies)
 
 

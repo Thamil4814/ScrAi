@@ -6,6 +6,7 @@ from pyscrai.application.setup_mapper import SetupInterviewMapper
 from pyscrai.contracts.models import (
     CompileMetadata,
     DomainProfile,
+    ManifestMetadata,
     MetadataProfile,
     PendingQuestion,
     Project,
@@ -14,7 +15,6 @@ from pyscrai.contracts.models import (
     ProjectCreateRequest,
     ProjectManifestDraft,
     ProjectManifestPayload,
-    ManifestProjectConfig,
     ProvenanceRecord,
     Scenario,
     ScenarioCreateRequest,
@@ -108,12 +108,14 @@ class ProjectService:
         manifest_draft = ProjectManifestDraft(
             project_id=project.id,
             payload=ProjectManifestPayload(
-                project=ManifestProjectConfig(
-                    id=project.id,
+                metadata=ManifestMetadata(
+                    project_id=project.id,
                     name=project.name,
                     description=project.description,
                     created_by=request.operator,
                     domain_type=project.domain_type,
+                    created_at=project.created_at,
+                    updated_at=project.updated_at,
                 )
             ),
         )
@@ -150,6 +152,9 @@ class ProjectService:
 
     def get_project(self, project_id: str) -> Project:
         return self.repository.load_project(project_id)
+
+    def get_manifest_draft(self, project_id: str) -> ProjectManifestDraft:
+        return self.repository.load_manifest_draft(project_id)
 
     def bootstrap_project(
         self, request: ProjectBootstrapRequest
