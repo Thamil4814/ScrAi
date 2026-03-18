@@ -1,19 +1,7 @@
 # PyScrAI
-
-PyScrAI is a WorldMatrix-first, human-in-the-loop world-authoring and scenario-instantiation platform.
-
-This repository now contains a thin but runnable MVP vertical slice:
-
-- core Pydantic contracts for MVP artifacts
-- a file-backed project/setup/worldmatrix service
-- a FastAPI app for setup and validation flow
-- deterministic scenario runtime test loop with trace artifacts
-- a Typer CLI for local bootstrap and run operations
-
 Primary development docs live in `docs/devops/`:
 
 - `pyscrai_dev_blueprint.md` is the primary development document and implementation plan.
-- `pyscrai_dev_architecture.md` defines the target architectural boundaries, layers, and system model.
 - `changelog.md` tracks concise dated change notes.
 
 ## Baseline setup

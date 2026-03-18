@@ -13,7 +13,7 @@ from pyscrai.contracts.models import (
 
 # Try to import Agent Zero bridge, but don't fail if not available
 try:
-    from pyscrai.agents.agent_zero_bridge import AgentZeroBridge, A2AClient
+    from pyscrai.a0.agent_zero_bridge import AgentZeroBridge, A2AClient
     AGENT_ZERO_AVAILABLE = True
 except ImportError:
     AGENT_ZERO_AVAILABLE = False
@@ -258,7 +258,7 @@ def _render_agent_zero_status(bridge: Optional[AgentZeroBridge]) -> None:
     st.header("🤖 Agent Zero Status")
     
     if not AGENT_ZERO_AVAILABLE:
-        st.error("Agent Zero bridge module not available. Please ensure pyscrai.agents module is installed.")
+        st.error("Agent Zero bridge module not available. Please ensure pyscrai.a0 module is installed.")
         return
     
     if bridge is None:
@@ -524,9 +524,9 @@ if __name__ == "__main__":
             ❌ **Agent Zero bridge module not found**
             
             Please ensure the following:
-            1. The `pyscrai.agents` module is properly installed
+            1. The `pyscrai.a0` module is properly installed
             2. Dependencies are updated: `pip install httpx a2a`
-            3. The bridge module exists at `packages/core/pyscrai/agents/agent_zero_bridge.py`
+            3. The bridge module exists at `packages/core/pyscrai/a0/agent_zero_bridge.py`
             """)
         else:
             # Agent Zero tabs

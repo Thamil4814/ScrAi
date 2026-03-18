@@ -3,9 +3,9 @@
 
 ### Changed
 - **BREAKING**: Replaced OpenAI Agents SDK with Agent Zero as Layer B (Agent Substrate)
-- Updated `pyscrai_dev_architecture.md` to reflect Agent Zero integration
 - Updated `pyscrai_dev_blueprint.md` with new agent substrate decision
-- Updated `.a0proj/knowledge/` files for consistency
+- Renamed packages/core/pyscrai/agents to packages/core/pyscrai/a0 
+- Moved /skills into packages/core/pyscrai/a0 
 
 ### Added
 - New `packages/core/pyscrai/agents/` module with Agent Zero bridge
@@ -60,7 +60,6 @@
 
 - Deprecated `pyscrai_blueprint.md`, `vision.md`, and `current_status.md` by moving them to `.dep/`.
 - Introduced `pyscrai_dev_blueprint.md` as the primary development document centering on PyScrAI Forge.
-- Introduced `pyscrai_dev_architecture.md` detailing architectural boundaries.
 - Updated `AGENTS.md` and `README.md` to map to the new repository documentation state.
 
 ## 2026-03-14 I
